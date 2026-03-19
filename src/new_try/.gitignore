@@ -6,3 +6,5 @@ dist/
 build/
 .python-version
 uv.lock
+.env
+web/output/
