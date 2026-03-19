@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STORM - Create an Article</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-56 bg-slate-800 text-white min-h-screen flex flex-col fixed lg:static z-30 transition-transform -translate-x-full lg:translate-x-0">
+        <div class="p-4">
+            <a href="/static/index.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2.5 rounded-lg text-sm font-medium transition">
+                + New Session
+            </a>
+        </div>
+        <nav class="flex-1 px-3 space-y-1">
+            <a href="/static/index.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Discover
+            </a>
+            <a href="/static/library.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                My Library
+            </a>
+        </nav>
+        <div class="p-4 text-xs text-slate-500">STORM Wiki</div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        <!-- Top bar -->
+        <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <h1 class="text-lg font-bold text-slate-800">STORM</h1>
+        </header>
+
+        <!-- Content -->
+        <main class="flex-1 flex items-start justify-center pt-24 px-4">
+            <div class="w-full max-w-2xl">
+                <h2 class="text-3xl font-bold text-center text-slate-800 mb-8">Create an Article</h2>
+
+                <!-- Search card -->
+                <form id="topic-form" class="bg-white rounded-xl border border-gray-200 shadow-sm p-1.5 flex items-center gap-2 mb-10">
+                    <input id="topic-input" type="text" placeholder="What topic would you like to explore?"
+                           class="flex-1 px-4 py-3 text-sm outline-none rounded-lg" autocomplete="off">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </form>
+
+                <!-- Example cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="example-card bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm transition">
+                        <h3 class="font-medium text-slate-800 text-sm mb-1">Quantum Computing</h3>
+                        <p class="text-xs text-slate-500">Explore the fundamentals and latest advances in quantum computation</p>
+                    </div>
+                    <div class="example-card bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm transition">
+                        <h3 class="font-medium text-slate-800 text-sm mb-1">CRISPR Gene Editing</h3>
+                        <p class="text-xs text-slate-500">How CRISPR-Cas9 is revolutionizing genetic engineering and medicine</p>
+                    </div>
+                    <div class="example-card bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm transition">
+                        <h3 class="font-medium text-slate-800 text-sm mb-1">Large Language Models</h3>
+                        <p class="text-xs text-slate-500">Understanding the architecture and impact of modern LLMs</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/home.js"></script>
+</body>
+</html>
