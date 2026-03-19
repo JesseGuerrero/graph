@@ -1,0 +1,80 @@
+/* Sidebar */
+.sidebar-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+}
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+}
+
+/* Scrollbar */
+.toc-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+.toc-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+/* Citations */
+.citation-link {
+    color: #3b82f6;
+    font-size: 0.75rem;
+    vertical-align: super;
+    cursor: pointer;
+    font-weight: 600;
+}
+.citation-link:hover {
+    text-decoration: underline;
+}
+
+/* Chat bubbles */
+.chat-bubble-agent {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-radius: 1rem 1rem 1rem 0.25rem;
+}
+.chat-bubble-user {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-radius: 1rem 1rem 0.25rem 1rem;
+}
+
+/* Article content styling */
+.article-content h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; }
+.article-content h2 { font-size: 1.375rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+.article-content h3 { font-size: 1.125rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.article-content p { margin: 0.5rem 0; line-height: 1.75; }
+.article-content ul, .article-content ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+.article-content li { margin: 0.25rem 0; line-height: 1.75; }
+.article-content table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+.article-content th, .article-content td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+.article-content th { background: #f8fafc; font-weight: 600; }
+.article-content blockquote { border-left: 3px solid #3b82f6; padding-left: 1rem; margin: 0.75rem 0; color: #64748b; }
+
+/* Step indicators */
+.step-done { color: #22c55e; }
+.step-active { color: #3b82f6; }
+.step-pending { color: #94a3b8; }
+
+/* Persona tabs */
+.persona-tab.active {
+    background: #1e40af;
+    color: white;
+}
+.persona-tab {
+    background: #e2e8f0;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.persona-tab:hover {
+    background: #cbd5e1;
+}
