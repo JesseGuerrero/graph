@@ -16,6 +16,8 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 class StreamingCallbackHandler(BaseCallbackHandler):
     def __init__(self, q: queue.Queue):
         self.q = q
+        self.total_queries = 0
+        self.total_sources = 0
 
     def _put(self, event_type, data=None):
         self.q.put({"type": event_type, "data": data or {}, "time": time.time()})
@@ -30,12 +32,19 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         self._put("gathering_start")
 
     def on_dialogue_turn_end(self, dlg_turn, **kwargs):
-        utterances = len(dlg_turn.utterances) if hasattr(dlg_turn, "utterances") else 0
-        urls = len(dlg_turn.search_results) if hasattr(dlg_turn, "search_results") else 0
-        self._put("dialogue_turn", {"utterances": utterances, "urls": urls})
+        queries = len(dlg_turn.search_queries) if dlg_turn.search_queries else 0
+        sources = len(dlg_turn.search_results) if dlg_turn.search_results else 0
+        self.total_queries += queries
+        self.total_sources += sources
+        self._put("dialogue_turn", {
+            "queries": queries, "urls": sources,
+            "total_queries": self.total_queries, "total_sources": self.total_sources,
+        })
 
     def on_information_gathering_end(self, **kwargs):
-        self._put("gathering_end")
+        self._put("gathering_end", {
+            "total_queries": self.total_queries, "total_sources": self.total_sources,
+        })
 
     def on_information_organization_start(self, **kwargs):
         self._put("organization_start")
@@ -45,6 +54,7 @@ class StreamingCallbackHandler(BaseCallbackHandler):
 
     def on_outline_refinement_end(self, outline: str, **kwargs):
         self._put("outline_refined", {"outline": outline})
+        self._put("writing_start")
 
 
 def create_runner(output_dir: str) -> STORMWikiRunner:
@@ -62,7 +72,7 @@ def create_runner(output_dir: str) -> STORMWikiRunner:
     lm_configs.set_article_polish_lm(lm)
 
     rm = DuckDuckGoSearchRM(k=3)
-    args = STORMWikiRunnerArguments(output_dir=output_dir)
+    args = STORMWikiRunnerArguments(output_dir=output_dir, max_perspective=5, max_thread_num=3)
 
     return STORMWikiRunner(args=args, lm_configs=lm_configs, rm=rm)
 
@@ -73,7 +83,6 @@ def run_pipeline(run_id: str, topic: str, runs_dict: dict):
     try:
         runner = create_runner(OUTPUT_DIR)
         callback = StreamingCallbackHandler(q)
-        q.put({"type": "writing_start", "data": {}, "time": time.time()})
         runner.run(topic=topic, callback_handler=callback)
         q.put({"type": "polishing_start", "data": {}, "time": time.time()})
         # polishing is part of runner.run, so after it returns we're done
