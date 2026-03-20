@@ -78,10 +78,10 @@ function handleEvent(event, evtSource) {
             setStepState('gathering', 'active');
             break;
         case 'dialogue_turn':
-            setStepState('gathering', 'active', `Researching... (${d.urls || 0} sources found)`);
+            setStepState('gathering', 'active', `Researching... ${d.total_queries || 0} searches, ${d.total_sources || 0} sources found`);
             break;
         case 'gathering_end':
-            setStepState('gathering', 'done', 'Information gathered');
+            setStepState('gathering', 'done', `${d.total_queries || 0} searches, ${d.total_sources || 0} sources collected`);
             break;
         case 'organization_start':
             setStepState('outline', 'active');
