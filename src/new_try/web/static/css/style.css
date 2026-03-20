@@ -64,6 +64,42 @@
 .step-active { color: #3b82f6; }
 .step-pending { color: #94a3b8; }
 
+/* Settings inputs */
+.settings-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    outline: none;
+    transition: border-color 0.15s;
+    background: #f8fafc;
+    color: #1e293b;
+}
+.settings-input:focus {
+    border-color: #94a3b8;
+    background: #fff;
+}
+.settings-input::placeholder {
+    color: #94a3b8;
+}
+.settings-radio {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #334155;
+    cursor: pointer;
+}
+.settings-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
 /* Persona tabs */
 .persona-tab.active {
     background: #1e40af;

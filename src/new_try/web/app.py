@@ -28,6 +28,7 @@ runs_lock = threading.Lock()
 
 class RunRequest(BaseModel):
     topic: str
+    settings: dict = {}
 
 
 @app.get("/")
@@ -46,7 +47,7 @@ def start_run(req: RunRequest):
             "queue": queue.Queue(),
             "article_dir": None,
         }
-    t = threading.Thread(target=run_pipeline, args=(run_id, req.topic, runs), daemon=True)
+    t = threading.Thread(target=run_pipeline, args=(run_id, req.topic, runs, req.settings), daemon=True)
     t.start()
     return {"run_id": run_id, "topic": req.topic}
 
@@ -115,24 +116,24 @@ def get_article(article_id: str):
     for fname in ["storm_gen_article_polished.txt", "storm_gen_article.txt"]:
         fpath = os.path.join(dirpath, fname)
         if os.path.exists(fpath):
-            text = Path(fpath).read_text(encoding="utf-8")
+            text = Path(fpath).read_text(encoding="utf-8", errors="replace")
             result["article_html"] = markdown.markdown(text, extensions=["tables", "fenced_code", "toc"])
             break
 
     # Outline
     outline_path = os.path.join(dirpath, "storm_gen_outline.txt")
     if os.path.exists(outline_path):
-        result["outline"] = Path(outline_path).read_text(encoding="utf-8")
+        result["outline"] = Path(outline_path).read_text(encoding="utf-8", errors="replace")
 
     # References
     url_info_path = os.path.join(dirpath, "url_to_info.json")
     if os.path.exists(url_info_path):
-        result["references"] = json.loads(Path(url_info_path).read_text(encoding="utf-8"))
+        result["references"] = json.loads(Path(url_info_path).read_text(encoding="utf-8", errors="replace"))
 
     # Conversation log
     conv_path = os.path.join(dirpath, "conversation_log.json")
     if os.path.exists(conv_path):
-        result["conversation_log"] = json.loads(Path(conv_path).read_text(encoding="utf-8"))
+        result["conversation_log"] = json.loads(Path(conv_path).read_text(encoding="utf-8", errors="replace"))
 
     return result
 

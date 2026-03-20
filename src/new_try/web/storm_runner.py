@@ -1,11 +1,17 @@
 import os
+import sys
 import queue
 import threading
 import time
+import traceback
 from dotenv import load_dotenv
+
+# Use local storm directory instead of any installed package
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'storm'))
+
 from knowledge_storm import STORMWikiRunner, STORMWikiRunnerArguments, STORMWikiLMConfigs
 from knowledge_storm.lm import LitellmModel
-from knowledge_storm.rm import DuckDuckGoSearchRM
+from knowledge_storm.rm import SearXNG, DuckDuckGoSearchRM
 from knowledge_storm.storm_wiki.modules.callback import BaseCallbackHandler
 
 load_dotenv()
@@ -57,38 +63,59 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         self._put("writing_start")
 
 
-def create_runner(output_dir: str) -> STORMWikiRunner:
-    model_name = os.getenv("LLM_MODEL", "claude-sonnet-4-6")
-    api_key = os.getenv("LLM_API_KEY", "")
-    api_base = os.getenv("LLM_API_BASE", "")
+def create_runner(output_dir: str, settings: dict = None) -> STORMWikiRunner:
+    settings = settings or {}
+    model_name = settings.get("openai_model") or os.getenv("LLM_MODEL", "claude-opus-4-6")
+    api_key = settings.get("openai_key") or os.getenv("LLM_API_KEY", "")
+    api_base = settings.get("openai_url") or os.getenv("LLM_API_BASE", "")
+    searxng_url = settings.get("searxng_url") or os.getenv("SEARXNG_URL", "")
 
-    lm = LitellmModel(model=f"openai/{model_name}", api_key=api_key, api_base=api_base)
+    lm_kwargs = {"api_key": api_key, "api_base": api_base}
 
     lm_configs = STORMWikiLMConfigs()
-    lm_configs.set_conv_simulator_lm(lm)
-    lm_configs.set_question_asker_lm(lm)
-    lm_configs.set_outline_gen_lm(lm)
-    lm_configs.set_article_gen_lm(lm)
-    lm_configs.set_article_polish_lm(lm)
+    lm_configs.set_conv_simulator_lm(
+        LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=1.0, top_p=0.9, **lm_kwargs))
+    lm_configs.set_question_asker_lm(
+        LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=1.0, top_p=0.9, **lm_kwargs))
+    outline_tokens = int(settings.get("outline_gen_tokens", 1000))
+    article_tokens = int(settings.get("article_gen_tokens", 4000))
+    polish_tokens = int(settings.get("article_polish_tokens", 8000))
+    lm_configs.set_outline_gen_lm(
+        LitellmModel(model=f"openai/{model_name}", max_tokens=outline_tokens, temperature=1.0, top_p=0.9, **lm_kwargs))
+    lm_configs.set_article_gen_lm(
+        LitellmModel(model=f"openai/{model_name}", max_tokens=article_tokens, temperature=1.0, top_p=0.9, **lm_kwargs))
+    lm_configs.set_article_polish_lm(
+        LitellmModel(model=f"openai/{model_name}", max_tokens=polish_tokens, temperature=1.0, top_p=0.9, **lm_kwargs))
 
-    rm = DuckDuckGoSearchRM(k=3)
-    args = STORMWikiRunnerArguments(output_dir=output_dir, max_perspective=5, max_thread_num=3)
+    max_perspective = int(settings.get("max_perspective", 5))
+    max_conv_turn = int(settings.get("max_conv_turn", 5))
+    search_top_k = int(settings.get("search_top_k", 5))
+    retrieve_top_k = int(settings.get("retrieve_top_k", 10))
 
+    search_provider = settings.get("search_provider", "searxng")
+    if search_provider == "searxng" and searxng_url:
+        rm = SearXNG(searxng_api_url=searxng_url, k=search_top_k)
+    else:
+        rm = DuckDuckGoSearchRM(k=search_top_k)
+
+    args = STORMWikiRunnerArguments(output_dir=output_dir, max_perspective=max_perspective,
+                                   max_conv_turn=max_conv_turn, search_top_k=search_top_k,
+                                   retrieve_top_k=retrieve_top_k, max_thread_num=3)
     return STORMWikiRunner(args=args, lm_configs=lm_configs, rm=rm)
 
 
-def run_pipeline(run_id: str, topic: str, runs_dict: dict):
+def run_pipeline(run_id: str, topic: str, runs_dict: dict, settings: dict = None):
     run = runs_dict[run_id]
     q = run["queue"]
     try:
-        runner = create_runner(OUTPUT_DIR)
+        runner = create_runner(OUTPUT_DIR, settings)
         callback = StreamingCallbackHandler(q)
         runner.run(topic=topic, callback_handler=callback)
         q.put({"type": "polishing_start", "data": {}, "time": time.time()})
-        # polishing is part of runner.run, so after it returns we're done
         q.put({"type": "done", "data": {"article_dir": runner.article_dir_name}, "time": time.time()})
         run["status"] = "done"
         run["article_dir"] = runner.article_dir_name
     except Exception as e:
+        traceback.print_exc()
         q.put({"type": "error", "data": {"message": str(e)}, "time": time.time()})
         run["status"] = "error"

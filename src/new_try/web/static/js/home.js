@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await api('/api/run', {
                 method: 'POST',
-                body: JSON.stringify({ topic }),
+                body: JSON.stringify({ topic, settings: getSettings() }),
             });
             window.location.href = `/static/article.html?run_id=${data.run_id}`;
         } catch (err) {
