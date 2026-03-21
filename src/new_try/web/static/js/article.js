@@ -281,10 +281,30 @@ function buildTOC(container) {
         const pl = level === 1 ? '' : level === 2 ? 'pl-3' : 'pl-6';
         const a = document.createElement('a');
         a.href = `#${id}`;
-        a.className = `block text-sm text-slate-500 hover:text-blue-600 py-0.5 ${pl} truncate`;
+        a.dataset.heading = id;
+        a.className = `toc-link block text-sm text-slate-400 hover:text-blue-600 py-0.5 ${pl} truncate transition-colors`;
         a.textContent = h.textContent;
         tocList.appendChild(a);
     });
+
+    // Track which section is in view and highlight its TOC link
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                tocList.querySelectorAll('.toc-link').forEach(l => {
+                    l.classList.remove('text-slate-800', 'font-semibold');
+                    l.classList.add('text-slate-400');
+                });
+                const active = tocList.querySelector(`[data-heading="${entry.target.id}"]`);
+                if (active) {
+                    active.classList.remove('text-slate-400');
+                    active.classList.add('text-slate-800', 'font-semibold');
+                }
+            }
+        });
+    }, { rootMargin: '0px 0px -70% 0px', threshold: 0 });
+
+    headings.forEach(h => observer.observe(h));
 }
 
 function renderReferences(citations) {
