@@ -200,12 +200,12 @@ def generate_storyline_div(data):
   <div style="font-family:monospace;font-size:.7rem;color:#64748b;margin-top:2px;">{ne} events &bull; {nc} entities &bull; scroll to explore</div>
 </div>
 <div id="{uid}-outer" style="display:flex;overflow:hidden;height:auto;">
-  <div id="{uid}-wrap" style="flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
-    <svg id="{uid}-svg"></svg>
-  </div>
-  <div id="{uid}-cpanel" style="width:180px;flex-shrink:0;background:#f1f5f9;border-left:1px solid #e2e8f0;overflow-y:auto;">
+  <div id="{uid}-cpanel" style="width:180px;flex-shrink:0;background:#f1f5f9;border-right:1px solid #e2e8f0;overflow-y:auto;">
     <div style="font-family:monospace;font-size:.6rem;color:#64748b;letter-spacing:.12em;text-transform:uppercase;padding:12px 12px 6px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;z-index:5;">Entities</div>
     <div id="{uid}-clist"></div>
+  </div>
+  <div id="{uid}-wrap" style="flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
+    <svg id="{uid}-svg"></svg>
   </div>
 </div>
 <script>
