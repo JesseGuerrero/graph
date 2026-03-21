@@ -10,3 +10,129 @@ search:
   formats:
     - html
     - json
+
+outgoing:
+  request_timeout: 10
+  max_request_timeout: 15
+
+engines:
+
+  # === DISABLED: Aggressive rate limiters ===
+  - name: google
+    disabled: true
+  - name: google news
+    disabled: true
+
+  # === HIGH WEIGHT: Tolerant general web engines ===
+  - name: duckduckgo
+    disabled: false
+    weight: 3.0
+    timeout: 10
+  - name: brave
+    disabled: false
+    weight: 3.0
+    timeout: 10
+  - name: bing
+    disabled: false
+    weight: 2.5
+    timeout: 10
+  - name: mojeek
+    disabled: false
+    weight: 2.0
+    timeout: 10
+  - name: qwant
+    disabled: false
+    weight: 2.0
+    timeout: 10
+  - name: startpage
+    disabled: false
+    weight: 2.0
+    timeout: 10
+
+  # === NEWS: For current events and reporting ===
+  - name: duckduckgo news
+    disabled: false
+    weight: 2.5
+    timeout: 10
+  - name: brave.news
+    disabled: false
+    weight: 2.5
+    timeout: 10
+  - name: bing news
+    disabled: false
+    weight: 2.0
+    timeout: 10
+  - name: mojeek news
+    disabled: false
+    weight: 2.0
+    timeout: 10
+  - name: qwant news
+    disabled: false
+    weight: 2.0
+    timeout: 10
+  - name: reuters
+    disabled: false
+    weight: 3.0
+    timeout: 10
+  - name: wikinews
+    disabled: false
+    weight: 1.5
+    timeout: 10
+  - name: yahoo news
+    disabled: false
+    weight: 1.5
+    timeout: 10
+
+  # === REFERENCE: Encyclopedic and factual ===
+  - name: wikipedia
+    disabled: false
+    weight: 3.0
+    timeout: 10
+  - name: wikidata
+    disabled: false
+    weight: 2.0
+    timeout: 10
+  - name: wikibooks
+    disabled: false
+    weight: 1.5
+    timeout: 10
+  - name: wikisource
+    disabled: false
+    weight: 1.5
+    timeout: 10
+
+  # === ACADEMIC: For research-grade sourcing ===
+  - name: arxiv
+    disabled: false
+    weight: 2.5
+    timeout: 15
+  - name: google scholar
+    disabled: false
+    weight: 2.5
+    timeout: 15
+  - name: semantic scholar
+    disabled: false
+    weight: 2.5
+    timeout: 15
+  - name: pubmed
+    disabled: false
+    weight: 2.0
+    timeout: 15
+  - name: crossref
+    disabled: false
+    weight: 2.0
+    timeout: 15
+  - name: openalex
+    disabled: false
+    weight: 2.0
+    timeout: 15
+
+  # === CROWD/FORUM: Community knowledge ===
+  - name: crowdview
+    disabled: false
+    weight: 1.0
+    timeout: 10
+  - name: stackoverflow
+    disabled: false
+    weight: 1.5
+    timeout: 10
