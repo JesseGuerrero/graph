@@ -16,6 +16,7 @@ const DEFAULTS = {
     article_polish_tokens: 8000,
     outline_gen_tokens: 1000,
     chunk_size: 1000,
+    include_images: false,
 };
 
 // Map between server keys (cfg_*) and frontend keys
@@ -35,6 +36,7 @@ const KEY_MAP = {
     cfg_article_gen_tokens: 'article_gen_tokens',
     cfg_article_polish_tokens: 'article_polish_tokens',
     cfg_outline_gen_tokens: 'outline_gen_tokens',
+    cfg_include_images: 'include_images',
 };
 
 const PROVIDER_MAP = {
@@ -87,6 +89,7 @@ async function saveSettings() {
         article_polish_tokens: parseInt(document.getElementById('set-article-polish-tokens').value) || 8000,
         outline_gen_tokens: parseInt(document.getElementById('set-outline-gen-tokens').value) || 1000,
         chunk_size: parseInt(document.getElementById('set-chunk-size').value) || 1000,
+        include_images: document.getElementById('set-include-images').checked,
     };
     _cachedSettings = s;
 
@@ -130,6 +133,7 @@ async function openSettings() {
     document.getElementById('set-article-polish-tokens').value = s.article_polish_tokens;
     document.getElementById('set-outline-gen-tokens').value = s.outline_gen_tokens;
     document.getElementById('set-chunk-size').value = s.chunk_size;
+    document.getElementById('set-include-images').checked = s.include_images;
     document.getElementById('settings-modal').classList.remove('hidden');
 }
 

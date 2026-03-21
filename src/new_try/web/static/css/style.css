@@ -58,6 +58,7 @@
 .article-content th, .article-content td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
 .article-content th { background: #f8fafc; font-weight: 600; }
 .article-content blockquote { border-left: 3px solid #3b82f6; padding-left: 1rem; margin: 0.75rem 0; color: #64748b; }
+.article-content img { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
 /* Step indicators */
 .step-done { color: #22c55e; }

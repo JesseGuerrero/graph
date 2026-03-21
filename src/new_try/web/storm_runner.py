@@ -164,9 +164,11 @@ def create_runner(output_dir: str, settings: dict = None) -> tuple:
     else:
         rm = DuckDuckGoSearchRM(k=search_top_k, snippet_chunk_size=chunk_size)
 
+    include_images = bool(settings.get("include_images", False))
     args = STORMWikiRunnerArguments(output_dir=output_dir, max_perspective=max_perspective,
                                    max_conv_turn=max_conv_turn, search_top_k=search_top_k,
-                                   retrieve_top_k=retrieve_top_k, max_thread_num=3)
+                                   retrieve_top_k=retrieve_top_k, max_thread_num=3,
+                                   include_images=include_images)
     return STORMWikiRunner(args=args, lm_configs=lm_configs, rm=rm), is_serper
 
 

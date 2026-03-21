@@ -200,6 +200,24 @@ def get_article(article_id: str):
     return result
 
 
+@app.get("/api/articles/{article_id}/images/{filename}")
+def get_article_image(article_id: str, filename: str):
+    from fastapi.responses import FileResponse
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+    # Sanitize filename
+    if '/' in filename or '\\' in filename or '..' in filename:
+        raise HTTPException(400, "Invalid filename")
+    img_path = os.path.join(dirpath, ".image_cache", filename)
+    if not os.path.exists(img_path):
+        raise HTTPException(404, "Image not found")
+    ext = filename.rsplit('.', 1)[-1].lower()
+    media_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+                   'gif': 'image/gif', 'webp': 'image/webp'}
+    return FileResponse(img_path, media_type=media_types.get(ext, 'image/jpeg'))
+
+
 @app.delete("/api/articles/{article_id}")
 def delete_article(article_id: str):
     dirpath = _find_article_dir(article_id)
