@@ -279,8 +279,8 @@ const eg=svg.append('g');
 evts.forEach((e,i)=>{{
   const x=ex[i];
   const pr=e.characters.filter(c=>co.includes(c));
-  if(!pr.length) return;
-  const ys=pr.map(c=>ey[i][c]);
+  const allYs=co.map(c=>ey[i][c]);
+  const ys=pr.length?pr.map(c=>ey[i][c]):allYs;
   const minY=Math.min(...ys),maxY=Math.max(...ys);
   const ctrY=(minY+maxY)/2;
   const tn=e.tension/10;
@@ -292,6 +292,13 @@ evts.forEach((e,i)=>{{
   grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+14).attr('ry',ry+10).attr('fill',gc).attr('opacity',tn*.08).attr('filter','url(#{uid}-gl)');
   grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+6).attr('ry',ry+2).attr('fill','none').attr('stroke',gc).attr('stroke-width',tn>.7?1.5:1).attr('opacity',.15+tn*.3).attr('stroke-dasharray',tn>.7?'none':'3,3');
 
+  // Small faded shapes for non-participating entities
+  const absent=co.filter(c=>!pr.includes(c));
+  absent.forEach(c=>{{
+    const cy2=ey[i][c];
+    grp.append('path').attr('d',shapePath(c,40)).attr('transform','translate('+x+','+cy2+')').attr('fill',cc(c)).attr('opacity',.15);
+  }});
+  // Full shapes for participating entities
   pr.forEach(c=>{{
     const cy2=ey[i][c];
     grp.append('path').attr('d',shapePath(c,150)).attr('transform','translate('+x+','+cy2+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
