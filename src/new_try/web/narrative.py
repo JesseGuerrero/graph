@@ -194,13 +194,22 @@ def generate_storyline_div(data):
     nc = len(data['characters'])
     uid = 'sl'  # unique prefix for IDs
 
-    return f'''<div id="narrative-storyline" style="background:#f8fafc;border-radius:12px;overflow:hidden;margin-bottom:2rem;border:1px solid #e2e8f0;">
+    return f'''<style>
+#{uid}-wrap::-webkit-scrollbar{{height:10px}}
+#{uid}-wrap::-webkit-scrollbar-track{{background:#f1f5f9;border-radius:5px}}
+#{uid}-wrap::-webkit-scrollbar-thumb{{background:#cbd5e1;border-radius:5px}}
+#{uid}-wrap::-webkit-scrollbar-thumb:hover{{background:#94a3b8}}
+</style>
+<div id="narrative-storyline" style="background:#f8fafc;border-radius:12px;overflow:hidden;margin-bottom:2rem;border:1px solid #e2e8f0;">
 <div style="padding:20px 24px 12px;border-bottom:1px solid #e2e8f0;">
   <div style="font-family:system-ui,sans-serif;font-weight:700;font-size:1.1rem;color:#1e3a5f;">Report Storyline</div>
   <div style="font-family:monospace;font-size:.7rem;color:#64748b;margin-top:2px;">{ne} events &bull; {nc} entities &bull; scroll to explore</div>
 </div>
-<div id="{uid}-outer" style="overflow:hidden;height:auto;">
-  <div id="{uid}-wrap" style="overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
+<div id="{uid}-outer" style="display:flex;overflow:hidden;height:auto;">
+  <div id="{uid}-legend" style="width:170px;flex-shrink:0;position:relative;">
+    <svg id="{uid}-legend-svg" style="display:block;"></svg>
+  </div>
+  <div id="{uid}-wrap" style="flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
     <svg id="{uid}-svg"></svg>
   </div>
 </div>
@@ -216,7 +225,7 @@ function shapePath(id,size){{return d3.symbol().type(shapeMap[cs(id)]||d3.symbol
 const wrap=document.getElementById('{uid}-wrap');
 const svg=d3.select('#{uid}-svg');
 
-const ES=140,PL=180,PR=50,PT=80,PB=160;
+const ES=140,PL=30,PR=50,PT=80,PB=160;
 const W=PL+Math.max(evts.length,1)*ES+PR;
 
 const co=[];const cset=new Set();
@@ -271,13 +280,16 @@ co.forEach(cid=>{{
   if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3.5).attr('opacity',.75).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}
 }});
 
-// Initial entity shapes with labels on the far left
-const igp=svg.append('g');
+// Legend SVG with entity shapes and labels (sticky left panel)
+const legendSvg=d3.select('#{uid}-legend-svg');
+legendSvg.attr('width',170).attr('height',H).attr('viewBox','0 0 170 '+H);
+document.getElementById('{uid}-legend').style.height=H+'px';
+const igp=legendSvg.append('g');
 co.forEach(c=>{{
   const y0=by[c];
-  igp.append('path').attr('d',shapePath(c,120)).attr('transform','translate(155,'+y0+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
+  igp.append('path').attr('d',shapePath(c,100)).attr('transform','translate(155,'+y0+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
   const nm=c.length>18?c.substring(0,16)+'...':c;
-  igp.append('text').attr('x',142).attr('y',y0+4).attr('text-anchor','end').attr('fill',cc(c)).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',600).attr('opacity',.85).text(nm);
+  igp.append('text').attr('x',142).attr('y',y0+4).attr('text-anchor','end').attr('fill',cc(c)).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',600).attr('opacity',.85).attr('cursor','pointer').text(nm);
 }});
 
 const eg=svg.append('g');
@@ -348,7 +360,7 @@ wrap.addEventListener('mousemove',e=>{{if(!dn)return;e.preventDefault();wrap.scr
 
 // Click entity label to isolate
 let activeC=null;
-igp.selectAll('text').style('cursor','pointer').on('click',function(){{
+legendSvg.selectAll('text').on('click',function(){{
   const c=d3.select(this).text();
   const fullName=co.find(x=>x.startsWith(c.replace('...','')));
   if(!fullName) return;
