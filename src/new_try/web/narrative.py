@@ -269,10 +269,10 @@ const lineGen=d3.line().curve(d3.curveBasis);
 co.forEach(cid=>{{
   const col=cc(cid);
   const pts=evts.map((_,i)=>[ex[i],ey[i][cid]]);
-  lg.append('path').datum(cid).attr('d',lineGen(pts)).attr('fill','none').attr('stroke',col).attr('stroke-width',1.5).attr('opacity',.1).attr('class','charline cl-'+cid.replace(/\\s/g,'_'));
+  lg.append('path').datum(cid).attr('d',lineGen(pts)).attr('fill','none').attr('stroke',col).attr('stroke-width',1.5).attr('opacity',.25).attr('class','charline cl-'+cid.replace(/\\s/g,'_'));
   let seg=[];
-  evts.forEach((e,i)=>{{if(e.characters.includes(cid)){{seg.push([ex[i],ey[i][cid]])}}else{{if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3).attr('opacity',.5).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}seg=[]}}}});
-  if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3).attr('opacity',.5).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}
+  evts.forEach((e,i)=>{{if(e.characters.includes(cid)){{seg.push([ex[i],ey[i][cid]])}}else{{if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3.5).attr('opacity',.75).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}seg=[]}}}});
+  if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3.5).attr('opacity',.75).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}
 }});
 
 const eg=svg.append('g');
@@ -355,8 +355,8 @@ co.forEach(c=>{{
   const nm2=document.createElement('span');nm2.style.cssText='font-family:monospace;font-size:.65rem;color:'+cc(c)+';';nm2.textContent=c;
   row.appendChild(nm2);
   row.addEventListener('click',()=>{{
-    if(activeC===c){{activeC=null;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).attr('stroke-width')==='1.5'?.1:.5}});charList.querySelectorAll('[data-char]').forEach(r=>r.style.opacity='1');}}
-    else{{activeC=c;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).datum()===c?(d3.select(this).attr('stroke-width')==='1.5'?.2:.8):.03}});charList.querySelectorAll('[data-char]').forEach(r=>{{r.style.opacity=r.dataset.char===c?'1':'.25'}});}}
+    if(activeC===c){{activeC=null;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).attr('stroke-width')==='1.5'?.25:.75}});charList.querySelectorAll('[data-char]').forEach(r=>r.style.opacity='1');}}
+    else{{activeC=c;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).datum()===c?(d3.select(this).attr('stroke-width')==='1.5'?.35:.9):.05}});charList.querySelectorAll('[data-char]').forEach(r=>{{r.style.opacity=r.dataset.char===c?'1':'.25'}});}}
   }});
   charList.appendChild(row);
 }});
