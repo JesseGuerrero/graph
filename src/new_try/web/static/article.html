@@ -174,7 +174,7 @@
                 </div>
                 <div>
                     <button onclick="toggleSection('sec-fetch')" class="w-full flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider py-1">
-                        Page Fetch <span id="sec-fetch-arrow" class="text-base">&minus;</span>
+                        Extract Page <span id="sec-fetch-arrow" class="text-base">&minus;</span>
                     </button>
                     <div id="sec-fetch" class="mt-2">
                         <label class="settings-radio"><input type="radio" name="page-fetch" value="trafilatura" checked> Trafilatura (static HTML extraction)</label>
@@ -182,14 +182,14 @@
                 </div>
                 <div>
                     <button onclick="toggleSection('sec-pipeline')" class="w-full flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider py-1">
-                        Pipeline Parameters <span id="sec-pipeline-arrow" class="text-base">&minus;</span>
+                        Agent Parameters <span id="sec-pipeline-arrow" class="text-base">&minus;</span>
                     </button>
                     <div id="sec-pipeline" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
-                        <label class="settings-label">Perspectives<input id="set-max-perspective" type="number" class="settings-input" min="1" max="20"></label>
-                        <label class="settings-label">Conv Turns<input id="set-max-conv-turn" type="number" class="settings-input" min="1" max="20"></label>
+                        <label class="settings-label">Judge Agents<input id="set-max-perspective" type="number" class="settings-input" min="1" max="20"></label>
+                        <label class="settings-label">Debate Turns<input id="set-max-conv-turn" type="number" class="settings-input" min="1" max="20"></label>
                         <label class="settings-label">Search Top-K<input id="set-search-top-k" type="number" class="settings-input" min="1" max="20"></label>
                         <label class="settings-label">Retrieve Top-K<input id="set-retrieve-top-k" type="number" class="settings-input" min="1" max="50"></label>
-                        <label class="settings-label">Article Gen Tokens<input id="set-article-gen-tokens" type="number" class="settings-input" min="500" max="32000" step="500"></label>
+                        <label class="settings-label">Article Token Limit<input id="set-article-gen-tokens" type="number" class="settings-input" min="500" max="32000" step="500"></label>
                         <label class="settings-label">Polish Tokens<input id="set-article-polish-tokens" type="number" class="settings-input" min="500" max="32000" step="500"></label>
                         <label class="settings-label">Outline Tokens<input id="set-outline-gen-tokens" type="number" class="settings-input" min="200" max="8000" step="100"></label>
                     </div>
