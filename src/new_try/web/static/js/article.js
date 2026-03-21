@@ -259,6 +259,8 @@ function cleanArticleText(text) {
     }
     // Fix markdown citation links: ]: "title" http -> ]: http
     text = text.replace(/\]:\s+".*?"\s+http/g, ']: http');
+    // Rename "summary" heading to "Report Summary"
+    text = text.replace(/^(#+)\s*summary\s*$/im, '$1 Report Summary');
     // Break up long paragraphs (more than 4 sentences) into shorter ones
     text = breakLongParagraphs(text);
     return text;
@@ -299,6 +301,18 @@ function addInlineCitationLinks(text, citations) {
     });
 }
 
+// Title case: capitalize important words, lowercase minor ones
+function toTitleCase(str) {
+    const minor = new Set(['a','an','the','and','but','or','nor','for','yet','so',
+        'in','on','at','to','by','of','up','as','is','it','if','no','not','with','from']);
+    return str.replace(/\w\S*/g, (word, idx) => {
+        if (idx === 0 || !minor.has(word.toLowerCase())) {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }
+        return word.toLowerCase();
+    });
+}
+
 function buildTOC(container) {
     const headings = container.querySelectorAll('h1, h2, h3');
     const tocList = document.getElementById('toc-list');
@@ -311,13 +325,25 @@ function buildTOC(container) {
         const id = `heading-${i}`;
         h.id = id;
         const level = parseInt(h.tagName[1]);
-        const pl = level === 1 ? '' : level === 2 ? 'pl-3' : 'pl-6';
-        const a = document.createElement('a');
-        a.href = `#${id}`;
-        a.dataset.heading = id;
-        a.className = `toc-link block text-sm text-slate-400 hover:text-blue-600 py-0.5 ${pl} truncate transition-colors`;
-        a.textContent = h.textContent;
-        tocList.appendChild(a);
+        const titleText = toTitleCase(h.textContent);
+        // Also update the heading in the article body
+        h.textContent = titleText;
+
+        const item = document.createElement('div');
+        item.className = 'toc-item';
+
+        if (level === 1) {
+            // Top-level: bold, no indent
+            item.innerHTML = `<a href="#${id}" data-heading="${id}" class="toc-link toc-h1 block text-sm font-semibold text-slate-700 hover:text-blue-600 py-1 transition-colors">${escapeHtml(titleText)}</a>`;
+        } else if (level === 2) {
+            // Subsection: indented with left border line
+            item.innerHTML = `<a href="#${id}" data-heading="${id}" class="toc-link toc-h2 block text-sm text-slate-400 hover:text-blue-600 py-0.5 ml-3 pl-3 border-l border-slate-200 transition-colors">${escapeHtml(titleText)}</a>`;
+        } else {
+            // Sub-subsection: deeper indent with nested border
+            item.innerHTML = `<a href="#${id}" data-heading="${id}" class="toc-link toc-h3 block text-xs text-slate-400 hover:text-blue-600 py-0.5 ml-6 pl-3 border-l border-slate-200 transition-colors">${escapeHtml(titleText)}</a>`;
+        }
+
+        tocList.appendChild(item);
     });
 
     // Track which section is in view and highlight its TOC link
@@ -325,13 +351,23 @@ function buildTOC(container) {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 tocList.querySelectorAll('.toc-link').forEach(l => {
-                    l.classList.remove('text-slate-800', 'font-semibold');
-                    l.classList.add('text-slate-400');
+                    if (l.classList.contains('toc-h1')) {
+                        l.classList.remove('text-slate-800');
+                        l.classList.add('text-slate-700');
+                    } else {
+                        l.classList.remove('text-slate-600');
+                        l.classList.add('text-slate-400');
+                    }
                 });
                 const active = tocList.querySelector(`[data-heading="${entry.target.id}"]`);
                 if (active) {
-                    active.classList.remove('text-slate-400');
-                    active.classList.add('text-slate-800', 'font-semibold');
+                    if (active.classList.contains('toc-h1')) {
+                        active.classList.remove('text-slate-700');
+                        active.classList.add('text-slate-800');
+                    } else {
+                        active.classList.remove('text-slate-400');
+                        active.classList.add('text-slate-600');
+                    }
                 }
             }
         });
