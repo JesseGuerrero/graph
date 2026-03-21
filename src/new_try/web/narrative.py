@@ -199,12 +199,8 @@ def generate_storyline_div(data):
   <div style="font-family:system-ui,sans-serif;font-weight:700;font-size:1.1rem;color:#1e3a5f;">Report Storyline</div>
   <div style="font-family:monospace;font-size:.7rem;color:#64748b;margin-top:2px;">{ne} events &bull; {nc} entities &bull; scroll to explore</div>
 </div>
-<div id="{uid}-outer" style="display:flex;overflow:hidden;height:auto;">
-  <div id="{uid}-cpanel" style="width:180px;flex-shrink:0;background:#f1f5f9;border-right:1px solid #e2e8f0;overflow-y:auto;">
-    <div style="font-family:monospace;font-size:.6rem;color:#64748b;letter-spacing:.12em;text-transform:uppercase;padding:12px 12px 6px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;z-index:5;">Entities</div>
-    <div id="{uid}-clist"></div>
-  </div>
-  <div id="{uid}-wrap" style="flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
+<div id="{uid}-outer" style="overflow:hidden;height:auto;">
+  <div id="{uid}-wrap" style="overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
     <svg id="{uid}-svg"></svg>
   </div>
 </div>
@@ -220,7 +216,7 @@ function shapePath(id,size){{return d3.symbol().type(shapeMap[cs(id)]||d3.symbol
 const wrap=document.getElementById('{uid}-wrap');
 const svg=d3.select('#{uid}-svg');
 
-const ES=140,PL=50,PR=50,PT=80,PB=160;
+const ES=140,PL=180,PR=50,PT=80,PB=160;
 const W=PL+Math.max(evts.length,1)*ES+PR;
 
 const co=[];const cset=new Set();
@@ -229,7 +225,7 @@ evts.forEach(e=>e.characters.forEach(c=>{{if(!cset.has(c)){{cset.add(c);co.push(
 const CG=36;
 const H=PT+Math.max(co.length,1)*CG+PB+40;
 svg.attr('width',W).attr('height',H).attr('viewBox','0 0 '+W+' '+H);
-document.getElementById('{uid}-outer').style.height=Math.max(H,co.length*48+100)+'px';
+document.getElementById('{uid}-outer').style.height=H+'px';
 
 const by={{}};co.forEach((c,i)=>{{by[c]=PT+25+i*CG}});
 const ex=evts.map((_,i)=>PL+i*ES+ES/2);
@@ -256,7 +252,7 @@ let ss2=0,ls2=evts[0]?.section||'',si2=0;
 function drawSec(start,end,name,idx){{
   const x1=ex[start]-ES/2,x2=ex[end]+ES/2;
   sg.append('rect').attr('x',x1).attr('y',0).attr('width',x2-x1).attr('height',H).attr('fill',scols[idx%scols.length]).attr('opacity',.07).attr('rx',4);
-  sg.append('text').attr('x',(x1+x2)/2).attr('y',22).attr('text-anchor','middle').attr('fill',scols[idx%scols.length]).attr('opacity',.7).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',700).attr('letter-spacing','.08em').text(name.toUpperCase().substring(0,35));
+  sg.append('text').attr('x',(x1+x2)/2).attr('y',24).attr('text-anchor','middle').attr('fill',scols[idx%scols.length]).attr('opacity',.75).attr('font-family','system-ui,sans-serif').attr('font-size','13px').attr('font-weight',700).attr('letter-spacing','.06em').text(name.toUpperCase().substring(0,40));
   sg.append('line').attr('x1',x2).attr('y1',0).attr('x2',x2).attr('y2',H).attr('stroke',scols[idx%scols.length]).attr('stroke-width',1).attr('opacity',.15);
 }}
 evts.forEach((e,i)=>{{if(e.section!==ls2&&i>0){{drawSec(ss2,i-1,ls2,si2);si2++;ss2=i}}ls2=e.section}});
@@ -275,11 +271,13 @@ co.forEach(cid=>{{
   if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3.5).attr('opacity',.75).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}
 }});
 
-// Initial entity shapes on the far left so lines are easy to follow
+// Initial entity shapes with labels on the far left
 const igp=svg.append('g');
 co.forEach(c=>{{
   const y0=by[c];
-  igp.append('path').attr('d',shapePath(c,120)).attr('transform','translate('+(PL-20)+','+y0+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
+  igp.append('path').attr('d',shapePath(c,120)).attr('transform','translate(155,'+y0+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
+  const nm=c.length>18?c.substring(0,16)+'...':c;
+  igp.append('text').attr('x',142).attr('y',y0+4).attr('text-anchor','end').attr('fill',cc(c)).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',600).attr('opacity',.85).text(nm);
 }});
 
 const eg=svg.append('g');
@@ -348,29 +346,15 @@ wrap.addEventListener('mouseleave',()=>{{dn=false}});
 wrap.addEventListener('mouseup',()=>{{dn=false}});
 wrap.addEventListener('mousemove',e=>{{if(!dn)return;e.preventDefault();wrap.scrollLeft=sl3-(e.pageX-wrap.offsetLeft-sx3)*1.5}});
 
-// Character panel
-const charList=document.getElementById('{uid}-clist');
+// Click entity label to isolate
 let activeC=null;
-co.forEach(c=>{{
-  const row=document.createElement('div');
-  row.style.cssText='display:flex;align-items:center;gap:7px;padding:0 12px;height:'+CG+'px;cursor:pointer;transition:background .15s,opacity .15s;';
-  row.dataset.char=c;
-  const cls=c.replace(/\\s/g,'_');
-  const shapeEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  shapeEl.setAttribute('width','14');shapeEl.setAttribute('height','14');shapeEl.setAttribute('viewBox','-8 -8 16 16');shapeEl.style.flexShrink='0';
-  const sp=document.createElementNS('http://www.w3.org/2000/svg','path');
-  sp.setAttribute('d',shapePath(c,80));sp.setAttribute('fill',cc(c));
-  shapeEl.appendChild(sp);
-  row.appendChild(shapeEl);
-  const nm2=document.createElement('span');nm2.style.cssText='font-family:monospace;font-size:.65rem;color:'+cc(c)+';';nm2.textContent=c;
-  row.appendChild(nm2);
-  row.addEventListener('click',()=>{{
-    if(activeC===c){{activeC=null;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).attr('stroke-width')==='1.5'?.25:.75}});charList.querySelectorAll('[data-char]').forEach(r=>r.style.opacity='1');}}
-    else{{activeC=c;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).datum()===c?(d3.select(this).attr('stroke-width')==='1.5'?.35:.9):.05}});charList.querySelectorAll('[data-char]').forEach(r=>{{r.style.opacity=r.dataset.char===c?'1':'.25'}});}}
-  }});
-  charList.appendChild(row);
+igp.selectAll('text').style('cursor','pointer').on('click',function(){{
+  const c=d3.select(this).text();
+  const fullName=co.find(x=>x.startsWith(c.replace('...','')));
+  if(!fullName) return;
+  if(activeC===fullName){{activeC=null;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).attr('stroke-width')==='1.5'?.25:.75}});}}
+  else{{activeC=fullName;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).datum()===fullName?(d3.select(this).attr('stroke-width')==='1.5'?.35:.9):.05}});}}
 }});
-charList.style.paddingTop=(PT+25-CG/2)+'px';
 }})();
 </script>
 <div id="{uid}-tip" style="position:fixed;pointer-events:none;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;max-width:280px;opacity:0;transition:opacity .12s;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.12);font-family:system-ui,sans-serif;font-size:12px;color:#334155;"></div>
