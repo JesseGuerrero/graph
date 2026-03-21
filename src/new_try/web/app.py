@@ -20,6 +20,7 @@ from storm_runner import run_pipeline, OUTPUT_DIR
 load_dotenv()
 
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "storm", "frontend", "demo_light", ".user_settings.json")
+STREAMLIT_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "storm", "frontend", "demo_light", "DEMO_WORKING_DIR")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -101,32 +102,53 @@ def run_status(run_id: str):
     return {"status": run["status"], "topic": run["topic"], "created_at": run["created_at"]}
 
 
-@app.get("/api/articles")
-def list_articles():
-    articles = []
-    if not os.path.exists(OUTPUT_DIR):
-        return articles
-    for name in sorted(os.listdir(OUTPUT_DIR), reverse=True):
-        dirpath = os.path.join(OUTPUT_DIR, name)
+def _scan_articles_dir(root_dir, source="web"):
+    """Scan a directory for STORM article folders."""
+    results = []
+    if not os.path.exists(root_dir):
+        return results
+    for name in os.listdir(root_dir):
+        dirpath = os.path.join(root_dir, name)
         if not os.path.isdir(dirpath):
             continue
-        # Check for generated article
         has_article = any(f.startswith("storm_gen_article") and f.endswith(".txt") for f in os.listdir(dirpath))
         if has_article:
             stat = os.stat(dirpath)
-            articles.append({
+            results.append({
                 "id": name,
                 "topic": name.replace("_", " "),
                 "created_at": stat.st_mtime,
                 "type": "article",
+                "source": source,
             })
+    return results
+
+
+@app.get("/api/articles")
+def list_articles():
+    articles = _scan_articles_dir(OUTPUT_DIR, "web")
+    # Also include articles from Streamlit's output dir
+    seen_ids = {a["id"] for a in articles}
+    for a in _scan_articles_dir(STREAMLIT_OUTPUT_DIR, "streamlit"):
+        if a["id"] not in seen_ids:
+            articles.append(a)
+    articles.sort(key=lambda a: a["created_at"], reverse=True)
     return articles
+
+
+def _find_article_dir(article_id: str):
+    """Find article directory, checking web output first then Streamlit."""
+    for root in [OUTPUT_DIR, STREAMLIT_OUTPUT_DIR]:
+        dirpath = os.path.join(root, article_id)
+        if os.path.isdir(dirpath):
+            return dirpath
+    return None
 
 
 @app.get("/api/articles/{article_id}")
 def get_article(article_id: str):
-    dirpath = os.path.join(OUTPUT_DIR, article_id)
-    if not os.path.isdir(dirpath):
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
         raise HTTPException(404, "Article not found")
 
     result = {"topic": article_id.replace("_", " "), "article_text": "", "article_html": "",
@@ -171,8 +193,8 @@ def get_article(article_id: str):
 
 @app.delete("/api/articles/{article_id}")
 def delete_article(article_id: str):
-    dirpath = os.path.join(OUTPUT_DIR, article_id)
-    if not os.path.isdir(dirpath):
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
         raise HTTPException(404, "Article not found")
     shutil.rmtree(dirpath)
     return {"ok": True}
