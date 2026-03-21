@@ -159,7 +159,7 @@ def build_narrative_data(article_text, topic=''):
             'time': '',
             'characters': present[:6],
             'location': '',
-            'description': sec['content'][:150].strip().replace('\n', ' '),
+            'description': re.sub(r'!\[.*?\]\(.*?\)', '', sec['content']).strip().replace('\n', ' ')[:150],
             'depends': [],
             'parallel': [],
             'merges': '',
@@ -220,7 +220,7 @@ function shapePath(id,size){{return d3.symbol().type(shapeMap[cs(id)]||d3.symbol
 const wrap=document.getElementById('{uid}-wrap');
 const svg=d3.select('#{uid}-svg');
 
-const ES=200,PL=50,PR=50,PT=80,PB=100;
+const ES=140,PL=50,PR=50,PT=80,PB=120;
 const W=PL+Math.max(evts.length,1)*ES+PR;
 
 const co=[];const cset=new Set();
@@ -256,7 +256,7 @@ let ss2=0,ls2=evts[0]?.section||'',si2=0;
 function drawSec(start,end,name,idx){{
   const x1=ex[start]-ES/2,x2=ex[end]+ES/2;
   sg.append('rect').attr('x',x1).attr('y',0).attr('width',x2-x1).attr('height',H).attr('fill',scols[idx%scols.length]).attr('opacity',.02);
-  sg.append('text').attr('x',(x1+x2)/2).attr('y',22).attr('text-anchor','middle').attr('fill',scols[idx%scols.length]).attr('opacity',.5).attr('font-family','monospace').attr('font-size','9px').attr('font-weight',500).attr('letter-spacing','.1em').text(name.toUpperCase().substring(0,30));
+  sg.append('text').attr('x',(x1+x2)/2).attr('y',22).attr('text-anchor','middle').attr('fill',scols[idx%scols.length]).attr('opacity',.6).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',700).attr('letter-spacing','.08em').text(name.toUpperCase().substring(0,35));
   sg.append('line').attr('x1',x2).attr('y1',0).attr('x2',x2).attr('y2',H).attr('stroke',scols[idx%scols.length]).attr('stroke-width',.5).attr('opacity',.1);
 }}
 evts.forEach((e,i)=>{{if(e.section!==ls2&&i>0){{drawSec(ss2,i-1,ls2,si2);si2++;ss2=i}}ls2=e.section}});
@@ -298,8 +298,12 @@ evts.forEach((e,i)=>{{
   }});
 
   const ly=maxY+24;
-  const nm=e.name.length>22?e.name.substring(0,20)+'...':e.name;
-  grp.append('text').attr('x',x).attr('y',ly).attr('text-anchor','middle').attr('fill','#1e293b').attr('opacity',.6).attr('font-family','system-ui,sans-serif').attr('font-size','10px').attr('font-weight',600).text(nm);
+  // Word-wrap event name at 23 chars
+  const wrapText=(str,lim)=>{{const words=str.split(' ');const lines=[];let cur='';words.forEach(w=>{{if((cur+' '+w).trim().length>lim){{lines.push(cur.trim());cur=w}}else{{cur+=' '+w}}}});if(cur.trim())lines.push(cur.trim());return lines}};
+  const nameLines=wrapText(e.name,23);
+  nameLines.forEach((ln,li)=>{{
+    grp.append('text').attr('x',x).attr('y',ly+li*13).attr('text-anchor','middle').attr('fill','#1e293b').attr('opacity',.7).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',600).text(ln);
+  }});
 
   grp.append('rect').attr('x',x-10).attr('y',minY-24).attr('width',20).attr('height',14).attr('rx',3).attr('fill',gc).attr('opacity',.8);
   grp.append('text').attr('x',x).attr('y',minY-14).attr('text-anchor','middle').attr('fill','#fff').attr('font-size','8px').attr('font-family','monospace').attr('font-weight',700).text(e.tension);
@@ -310,7 +314,8 @@ evts.forEach((e,i)=>{{
       const tip=document.getElementById('{uid}-tip');
       if(!tip) return;
       const ch=pr.map(c=>'<span style="background:'+cc(c)+';padding:2px 6px;border-radius:2px;font-size:10px;color:#fff;margin:1px;">'+c+'</span>').join(' ');
-      tip.innerHTML='<div style="font-weight:700;color:#1e293b;margin-bottom:4px;">'+e.name+'</div><div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+e.description+'</div><div>'+ch+'</div>';
+      const desc=e.description.replace(/!\[.*?\]\(.*?\)/g,'').trim();
+      tip.innerHTML='<div style="font-weight:700;color:#1e293b;margin-bottom:4px;">'+e.name+'</div>'+(desc?'<div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+desc+'</div>':'')+'<div>'+ch+'</div>';
       tip.style.opacity='1';
       tip.style.left=Math.min(ev.clientX+12,innerWidth-300)+'px';
       tip.style.top=(ev.clientY+12)+'px';
