@@ -261,6 +261,12 @@ function cleanArticleText(text) {
     text = text.replace(/\]:\s+".*?"\s+http/g, ']: http');
     // Rename "summary" heading to "Report Summary"
     text = text.replace(/^(#+)\s*summary\s*$/im, '$1 Report Summary');
+    // Clean up image markdown: collapse multi-line alt text, truncate long captions
+    text = text.replace(/!\[([^\]]*?)\]\(([^)]+)\)/gs, (match, alt, url) => {
+        alt = alt.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (alt.length > 80) alt = alt.substring(0, 80).trim() + '...';
+        return `![${alt}](${url})`;
+    });
     // Break up long paragraphs (more than 4 sentences) into shorter ones
     text = breakLongParagraphs(text);
     return text;
