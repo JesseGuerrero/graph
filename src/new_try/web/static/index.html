@@ -104,6 +104,9 @@
                     <div id="sec-search" class="space-y-3 mt-2">
                         <label class="settings-radio"><input type="radio" name="search-provider" value="searxng" checked> SearXNG (self-hosted)</label>
                         <input id="set-searxng-url" type="text" placeholder="SearXNG URL (e.g. http://localhost:8888/search)" class="settings-input ml-5">
+                        <label class="settings-radio"><input type="radio" name="search-provider" value="serper"> Serper (Google via API)</label>
+                        <input id="set-serper-key" type="password" placeholder="Serper API Key" class="settings-input ml-5">
+                        <label class="settings-radio ml-5"><input type="checkbox" id="set-serper-cache" checked> Serper: Cache search results locally</label>
                         <label class="settings-radio"><input type="radio" name="search-provider" value="duckduckgo"> DuckDuckGo (no key, snippets only)</label>
                         <label class="settings-radio opacity-40"><input type="radio" name="search-provider" value="brave" disabled> Brave Search (coming soon)</label>
                         <input id="set-brave-key" type="password" placeholder="Brave API Key" class="settings-input ml-5 opacity-40" disabled>
@@ -114,8 +117,9 @@
                     <button onclick="toggleSection('sec-fetch')" class="w-full flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider py-1">
                         Extract Page <span id="sec-fetch-arrow" class="text-base">&minus;</span>
                     </button>
-                    <div id="sec-fetch" class="mt-2">
+                    <div id="sec-fetch" class="mt-2 space-y-3">
                         <label class="settings-radio"><input type="radio" name="page-fetch" value="trafilatura" checked> Trafilatura (static HTML extraction)</label>
+                        <label class="settings-label">Chunk Index Size (chars)<input id="set-chunk-size" type="number" class="settings-input" min="200" max="5000" step="100"></label>
                     </div>
                 </div>
                 <!-- Agent Parameters -->
@@ -126,9 +130,9 @@
                     <div id="sec-pipeline" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
                         <label class="settings-label">Judge Agents<input id="set-max-perspective" type="number" class="settings-input" min="1" max="20"></label>
                         <label class="settings-label">Debate Turns<input id="set-max-conv-turn" type="number" class="settings-input" min="1" max="20"></label>
-                        <label class="settings-label">Search Top-K Web URLs<input id="set-search-top-k" type="number" class="settings-input" min="1" max="20"></label>
-                        <label class="settings-label">Retrieve Top-K Per Section<input id="set-retrieve-top-k" type="number" class="settings-input" min="1" max="50"></label>
-                        <label class="settings-label">Article Token Limit<input id="set-article-gen-tokens" type="number" class="settings-input" min="500" max="32000" step="500"></label>
+                        <label class="settings-label">Search Top-K Web URLs Per Turn<input id="set-search-top-k" type="number" class="settings-input" min="1" max="20"></label>
+                        <label class="settings-label">Retrieve Top-K Chunks Per Section<input id="set-retrieve-top-k" type="number" class="settings-input" min="1" max="50"></label>
+                        <label class="settings-label">Section by Section Token Limit<input id="set-article-gen-tokens" type="number" class="settings-input" min="500" max="32000" step="500"></label>
                         <label class="settings-label">Polish Tokens<input id="set-article-polish-tokens" type="number" class="settings-input" min="500" max="32000" step="500"></label>
                         <label class="settings-label">Outline Tokens<input id="set-outline-gen-tokens" type="number" class="settings-input" min="200" max="8000" step="100"></label>
                     </div>
