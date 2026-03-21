@@ -275,6 +275,13 @@ co.forEach(cid=>{{
   if(seg.length>1){{lg.append('path').datum(cid).attr('d',d3.line().curve(d3.curveBasis)(seg)).attr('fill','none').attr('stroke',col).attr('stroke-width',3.5).attr('opacity',.75).attr('stroke-linecap','round').attr('class','charline cl-'+cid.replace(/\\s/g,'_'))}}
 }});
 
+// Initial entity shapes on the far left so lines are easy to follow
+const igp=svg.append('g');
+co.forEach(c=>{{
+  const y0=by[c];
+  igp.append('path').attr('d',shapePath(c,120)).attr('transform','translate('+(PL-20)+','+y0+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
+}});
+
 const eg=svg.append('g');
 evts.forEach((e,i)=>{{
   const x=ex[i];
@@ -282,15 +289,10 @@ evts.forEach((e,i)=>{{
   const allYs=co.map(c=>ey[i][c]);
   const ys=pr.length?pr.map(c=>ey[i][c]):allYs;
   const minY=Math.min(...ys),maxY=Math.max(...ys);
-  const ctrY=(minY+maxY)/2;
   const tn=e.tension/10;
-  const rx=Math.max(20,(maxY-minY)/2+16);
-  const ry=Math.max(18,rx*.85);
   const gc=d3.interpolateRgb('#94a3b8','#1e3a5f')(tn);
 
   const grp=eg.append('g');
-  grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+14).attr('ry',ry+10).attr('fill',gc).attr('opacity',tn*.08).attr('filter','url(#{uid}-gl)');
-  grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+6).attr('ry',ry+2).attr('fill','none').attr('stroke',gc).attr('stroke-width',tn>.7?1.5:1).attr('opacity',.15+tn*.3).attr('stroke-dasharray',tn>.7?'none':'3,3');
 
   // Small faded shapes for non-participating entities
   const absent=co.filter(c=>!pr.includes(c));
@@ -316,7 +318,7 @@ evts.forEach((e,i)=>{{
   grp.append('text').attr('x',x).attr('y',minY-14).attr('text-anchor','middle').attr('fill','#fff').attr('font-size','8px').attr('font-family','monospace').attr('font-weight',700).text(e.tension);
 
   // Tooltip on hover
-  grp.append('rect').attr('x',x-rx-16).attr('y',minY-30).attr('width',(rx+16)*2).attr('height',maxY-minY+80).attr('fill','transparent').attr('cursor','pointer')
+  grp.append('rect').attr('x',x-ES/2).attr('y',PT-20).attr('width',ES).attr('height',H-PT-PB+40).attr('fill','transparent').attr('cursor','pointer')
     .on('mouseenter',function(ev){{
       const tip=document.getElementById('{uid}-tip');
       if(!tip) return;
