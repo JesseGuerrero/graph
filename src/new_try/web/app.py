@@ -1,6 +1,7 @@
 import json
 import os
 import queue
+import re
 import shutil
 import threading
 import time
@@ -102,6 +103,12 @@ def run_status(run_id: str):
     return {"status": run["status"], "topic": run["topic"], "created_at": run["created_at"]}
 
 
+def _dir_name_to_topic(name):
+    """Strip trailing _<timestamp> suffix from directory name to get topic."""
+    cleaned = re.sub(r'_\d{10}$', '', name)
+    return cleaned.replace("_", " ")
+
+
 def _scan_articles_dir(root_dir, source="web"):
     """Scan a directory for STORM article folders."""
     results = []
@@ -116,7 +123,7 @@ def _scan_articles_dir(root_dir, source="web"):
             stat = os.stat(dirpath)
             results.append({
                 "id": name,
-                "topic": name.replace("_", " "),
+                "topic": _dir_name_to_topic(name),
                 "created_at": stat.st_mtime,
                 "type": "article",
                 "source": source,
@@ -151,7 +158,7 @@ def get_article(article_id: str):
     if not dirpath:
         raise HTTPException(404, "Article not found")
 
-    result = {"topic": article_id.replace("_", " "), "article_text": "", "article_html": "",
+    result = {"topic": _dir_name_to_topic(article_id), "article_text": "", "article_html": "",
               "outline": "", "citation_dict": {}, "conversation_log": []}
 
     # Read polished article first, fall back to draft
