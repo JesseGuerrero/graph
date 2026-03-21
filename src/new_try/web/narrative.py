@@ -159,7 +159,7 @@ def build_narrative_data(article_text, topic=''):
             'time': '',
             'characters': present[:6],
             'location': '',
-            'description': re.sub(r'!\[.*?\]\(.*?\)', '', sec['content']).strip().replace('\n', ' ')[:150],
+            'description': sec['content'].strip().replace('\n', ' ')[:300],
             'depends': [],
             'parallel': [],
             'merges': '',
@@ -314,8 +314,9 @@ evts.forEach((e,i)=>{{
       const tip=document.getElementById('{uid}-tip');
       if(!tip) return;
       const ch=pr.map(c=>'<span style="background:'+cc(c)+';padding:2px 6px;border-radius:2px;font-size:10px;color:#fff;margin:1px;">'+c+'</span>').join(' ');
-      const desc=e.description.replace(/!\[.*?\]\(.*?\)/g,'').trim();
-      tip.innerHTML='<div style="font-weight:700;color:#1e293b;margin-bottom:4px;">'+e.name+'</div>'+(desc?'<div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+desc+'</div>':'')+'<div>'+ch+'</div>';
+      const descRaw=e.description;
+      const descHtml=descRaw.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" style="max-width:100%;border-radius:4px;margin:4px 0;">').trim();
+      tip.innerHTML='<div style="font-weight:700;color:#1e293b;margin-bottom:4px;">'+e.name+'</div>'+(descHtml?'<div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+descHtml+'</div>':'')+'<div>'+ch+'</div>';
       tip.style.opacity='1';
       tip.style.left=Math.min(ev.clientX+12,innerWidth-300)+'px';
       tip.style.top=(ev.clientY+12)+'px';
