@@ -322,7 +322,7 @@ function showPersona(index) {
     (persona.turns || []).forEach(turn => {
         if (turn.user_utterance) {
             html += `<div class="flex gap-3 justify-end">
-                <div class="chat-bubble-user px-4 py-2.5 max-w-lg text-sm font-medium">${escapeHtml(turn.user_utterance)}</div>
+                <div class="chat-bubble-user px-4 py-2.5 max-w-lg text-sm font-medium chat-md">${marked.parse(turn.user_utterance)}</div>
                 <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
@@ -335,7 +335,7 @@ function showPersona(index) {
                 <div class="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                 </div>
-                <div class="chat-bubble-agent px-4 py-2.5 max-w-lg text-sm">${escapeHtml(agentText)}</div>
+                <div class="chat-bubble-agent px-4 py-2.5 max-w-lg text-sm chat-md">${marked.parse(agentText)}</div>
             </div>`;
         }
     });
