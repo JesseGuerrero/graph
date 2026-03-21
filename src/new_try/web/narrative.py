@@ -8,11 +8,17 @@ import json
 import html as html_mod
 from collections import Counter
 
-# Fixed color palette for consistent styling
+# Color palette matching the report's blue-based scheme
 COLORS = [
-    '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7dc6f', '#bb8fce',
-    '#f1948a', '#82e0aa', '#f0b27a', '#85c1e9', '#d7bde2',
-    '#a3e4d7', '#f9e79f', '#aed6f1', '#fadbd8', '#d5f5e3',
+    '#1e3a5f', '#2e86ab', '#a23b72', '#f18f01', '#3c896d',
+    '#5c4d7d', '#c44536', '#4a8fe7', '#7b6d8d', '#e8871e',
+    '#2d6a4f', '#774936', '#457b9d', '#9b2226', '#606c38',
+]
+
+# D3.js shape symbols for entity differentiation
+SHAPES = [
+    'symbolCircle', 'symbolSquare', 'symbolTriangle', 'symbolDiamond',
+    'symbolStar', 'symbolCross', 'symbolWye',
 ]
 
 
@@ -98,12 +104,13 @@ def build_narrative_data(article_text, topic=''):
     sections = parse_report_sections(article_text)
     entities = extract_entities(article_text)
 
-    # Assign colors to entities
+    # Assign colors and shapes to entities
     characters = []
     for i, name in enumerate(entities):
         characters.append({
             'id': name,
             'color': COLORS[i % len(COLORS)],
+            'shape': SHAPES[i % len(SHAPES)],
         })
 
     # Build events from top-level sections (h1)
@@ -187,17 +194,17 @@ def generate_storyline_div(data):
     nc = len(data['characters'])
     uid = 'sl'  # unique prefix for IDs
 
-    return f'''<div id="narrative-storyline" style="background:#08090d;border-radius:12px;overflow:hidden;margin-bottom:2rem;border:1px solid #1e2030;">
-<div style="padding:20px 24px 12px;border-bottom:1px solid #1e2030;">
-  <div style="font-family:system-ui,sans-serif;font-weight:700;font-size:1.1rem;color:#eeeef2;">Report Storyline</div>
-  <div style="font-family:monospace;font-size:.7rem;color:#4a4c5e;margin-top:2px;">{ne} events &bull; {nc} entities &bull; scroll to explore</div>
+    return f'''<div id="narrative-storyline" style="background:#f8fafc;border-radius:12px;overflow:hidden;margin-bottom:2rem;border:1px solid #e2e8f0;">
+<div style="padding:20px 24px 12px;border-bottom:1px solid #e2e8f0;">
+  <div style="font-family:system-ui,sans-serif;font-weight:700;font-size:1.1rem;color:#1e3a5f;">Report Storyline</div>
+  <div style="font-family:monospace;font-size:.7rem;color:#64748b;margin-top:2px;">{ne} events &bull; {nc} entities &bull; scroll to explore</div>
 </div>
 <div id="{uid}-outer" style="display:flex;overflow:hidden;height:auto;">
   <div id="{uid}-wrap" style="flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;">
     <svg id="{uid}-svg"></svg>
   </div>
-  <div id="{uid}-cpanel" style="width:180px;flex-shrink:0;background:#151720;border-left:1px solid #1e2030;overflow-y:auto;">
-    <div style="font-family:monospace;font-size:.6rem;color:#4a4c5e;letter-spacing:.12em;text-transform:uppercase;padding:12px 12px 6px;border-bottom:1px solid #1e2030;position:sticky;top:0;background:#151720;z-index:5;">Entities</div>
+  <div id="{uid}-cpanel" style="width:180px;flex-shrink:0;background:#f1f5f9;border-left:1px solid #e2e8f0;overflow-y:auto;">
+    <div style="font-family:monospace;font-size:.6rem;color:#64748b;letter-spacing:.12em;text-transform:uppercase;padding:12px 12px 6px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;z-index:5;">Entities</div>
     <div id="{uid}-clist"></div>
   </div>
 </div>
@@ -206,6 +213,9 @@ def generate_storyline_div(data):
 const D={dj};
 const chars=D.characters,evts=D.events,secs=D.sections;
 function cc(id){{const c=chars.find(x=>x.id===id);return c?.color||'#666'}}
+function cs(id){{const c=chars.find(x=>x.id===id);return c?.shape||'symbolCircle'}}
+const shapeMap={{symbolCircle:d3.symbolCircle,symbolSquare:d3.symbolSquare,symbolTriangle:d3.symbolTriangle,symbolDiamond:d3.symbolDiamond,symbolStar:d3.symbolStar,symbolCross:d3.symbolCross,symbolWye:d3.symbolWye}};
+function shapePath(id,size){{return d3.symbol().type(shapeMap[cs(id)]||d3.symbolCircle).size(size)()}}
 
 const wrap=document.getElementById('{uid}-wrap');
 const svg=d3.select('#{uid}-svg');
@@ -240,7 +250,7 @@ const gl=defs.append('filter').attr('id','{uid}-gl').attr('x','-50%').attr('y','
 gl.append('feGaussianBlur').attr('stdDeviation','5').attr('result','b');
 gl.append('feMerge').selectAll('feMergeNode').data(['b','SourceGraphic']).join('feMergeNode').attr('in',d=>d);
 
-const scols=['#ff6b6b','#4ecdc4','#45b7d1','#f7dc6f','#bb8fce','#f1948a','#82e0aa','#f0b27a'];
+const scols=['#1e3a5f','#2e86ab','#a23b72','#f18f01','#3c896d','#5c4d7d','#c44536','#4a8fe7'];
 const sg=svg.append('g');
 let ss2=0,ls2=evts[0]?.section||'',si2=0;
 function drawSec(start,end,name,idx){{
@@ -252,7 +262,7 @@ function drawSec(start,end,name,idx){{
 evts.forEach((e,i)=>{{if(e.section!==ls2&&i>0){{drawSec(ss2,i-1,ls2,si2);si2++;ss2=i}}ls2=e.section}});
 if(evts.length) drawSec(ss2,evts.length-1,ls2,si2);
 
-evts.forEach((_,i)=>{{svg.append('line').attr('x1',ex[i]).attr('y1',PT-15).attr('x2',ex[i]).attr('y2',H-PB+15).attr('stroke','#fff').attr('stroke-width',.3).attr('opacity',.03)}});
+evts.forEach((_,i)=>{{svg.append('line').attr('x1',ex[i]).attr('y1',PT-15).attr('x2',ex[i]).attr('y2',H-PB+15).attr('stroke','#1e3a5f').attr('stroke-width',.3).attr('opacity',.08)}});
 
 const lg=svg.append('g');
 const lineGen=d3.line().curve(d3.curveBasis);
@@ -276,7 +286,7 @@ evts.forEach((e,i)=>{{
   const tn=e.tension/10;
   const rx=Math.max(20,(maxY-minY)/2+16);
   const ry=Math.max(18,rx*.85);
-  const gc=d3.interpolateRgb('#1e2030','#ff6b6b')(tn);
+  const gc=d3.interpolateRgb('#94a3b8','#1e3a5f')(tn);
 
   const grp=eg.append('g');
   grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+14).attr('ry',ry+10).attr('fill',gc).attr('opacity',tn*.08).attr('filter','url(#{uid}-gl)');
@@ -284,15 +294,15 @@ evts.forEach((e,i)=>{{
 
   pr.forEach(c=>{{
     const cy2=ey[i][c];
-    grp.append('circle').attr('cx',x).attr('cy',cy2).attr('r',5).attr('fill',cc(c)).attr('stroke',cc(c)).attr('stroke-width',1.5).attr('stroke-opacity',.3);
-    grp.append('circle').attr('cx',x).attr('cy',cy2).attr('r',2.5).attr('fill','#fff').attr('opacity',.7);
+    grp.append('path').attr('d',shapePath(c,120)).attr('transform','translate('+x+','+cy2+')').attr('fill',cc(c)).attr('stroke',cc(c)).attr('stroke-width',1).attr('stroke-opacity',.4);
+    grp.append('path').attr('d',shapePath(c,30)).attr('transform','translate('+x+','+cy2+')').attr('fill','#fff').attr('opacity',.8);
   }});
 
   const ly=maxY+24;
   const nm=e.name.length>22?e.name.substring(0,20)+'...':e.name;
-  grp.append('text').attr('x',x).attr('y',ly).attr('text-anchor','middle').attr('fill','#fff').attr('opacity',.45).attr('font-family','system-ui,sans-serif').attr('font-size','10px').attr('font-weight',600).text(nm);
+  grp.append('text').attr('x',x).attr('y',ly).attr('text-anchor','middle').attr('fill','#1e293b').attr('opacity',.6).attr('font-family','system-ui,sans-serif').attr('font-size','10px').attr('font-weight',600).text(nm);
 
-  grp.append('rect').attr('x',x-10).attr('y',minY-24).attr('width',20).attr('height',14).attr('rx',3).attr('fill',gc).attr('opacity',.7);
+  grp.append('rect').attr('x',x-10).attr('y',minY-24).attr('width',20).attr('height',14).attr('rx',3).attr('fill',gc).attr('opacity',.8);
   grp.append('text').attr('x',x).attr('y',minY-14).attr('text-anchor','middle').attr('fill','#fff').attr('font-size','8px').attr('font-family','monospace').attr('font-weight',700).text(e.tension);
 
   // Tooltip on hover
@@ -301,7 +311,7 @@ evts.forEach((e,i)=>{{
       const tip=document.getElementById('{uid}-tip');
       if(!tip) return;
       const ch=pr.map(c=>'<span style="background:'+cc(c)+';padding:2px 6px;border-radius:2px;font-size:10px;color:#fff;margin:1px;">'+c+'</span>').join(' ');
-      tip.innerHTML='<div style="font-weight:700;color:#eee;margin-bottom:4px;">'+e.name+'</div><div style="font-size:11px;color:#7a7c8e;margin-bottom:6px;">'+e.description+'</div><div>'+ch+'</div>';
+      tip.innerHTML='<div style="font-weight:700;color:#1e293b;margin-bottom:4px;">'+e.name+'</div><div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+e.description+'</div><div>'+ch+'</div>';
       tip.style.opacity='1';
       tip.style.left=Math.min(ev.clientX+12,innerWidth-300)+'px';
       tip.style.top=(ev.clientY+12)+'px';
@@ -331,7 +341,14 @@ co.forEach(c=>{{
   row.style.cssText='display:flex;align-items:center;gap:7px;padding:0 12px;height:'+CG+'px;cursor:pointer;transition:background .15s,opacity .15s;';
   row.dataset.char=c;
   const cls=c.replace(/\\s/g,'_');
-  row.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+cc(c)+';flex-shrink:0;"></div><span style="font-family:monospace;font-size:.65rem;color:'+cc(c)+';">'+c+'</span>';
+  const shapeEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  shapeEl.setAttribute('width','14');shapeEl.setAttribute('height','14');shapeEl.setAttribute('viewBox','-8 -8 16 16');shapeEl.style.flexShrink='0';
+  const sp=document.createElementNS('http://www.w3.org/2000/svg','path');
+  sp.setAttribute('d',shapePath(c,80));sp.setAttribute('fill',cc(c));
+  shapeEl.appendChild(sp);
+  row.appendChild(shapeEl);
+  const nm2=document.createElement('span');nm2.style.cssText='font-family:monospace;font-size:.65rem;color:'+cc(c)+';';nm2.textContent=c;
+  row.appendChild(nm2);
   row.addEventListener('click',()=>{{
     if(activeC===c){{activeC=null;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).attr('stroke-width')==='1.5'?.1:.5}});charList.querySelectorAll('[data-char]').forEach(r=>r.style.opacity='1');}}
     else{{activeC=c;svg.selectAll('.charline').style('opacity',function(){{return d3.select(this).datum()===c?(d3.select(this).attr('stroke-width')==='1.5'?.2:.8):.03}});charList.querySelectorAll('[data-char]').forEach(r=>{{r.style.opacity=r.dataset.char===c?'1':'.25'}});}}
@@ -341,5 +358,5 @@ co.forEach(c=>{{
 charList.style.paddingTop=(PT+25-CG/2)+'px';
 }})();
 </script>
-<div id="{uid}-tip" style="position:fixed;pointer-events:none;background:#181b28;border:1px solid #2a2e45;border-radius:8px;padding:12px 16px;max-width:280px;opacity:0;transition:opacity .12s;z-index:300;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:system-ui,sans-serif;font-size:12px;color:#d4d4dc;"></div>
+<div id="{uid}-tip" style="position:fixed;pointer-events:none;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;max-width:280px;opacity:0;transition:opacity .12s;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.12);font-family:system-ui,sans-serif;font-size:12px;color:#334155;"></div>
 </div>'''
