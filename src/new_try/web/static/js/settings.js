@@ -8,6 +8,7 @@ const DEFAULTS = {
     serper_cache: true,
     brave_key: '',
     xai_enabled: false,
+    xai_key: '',
     max_perspective: 5,
     max_conv_turn: 5,
     search_top_k: 5,
@@ -37,6 +38,8 @@ const KEY_MAP = {
     cfg_article_polish_tokens: 'article_polish_tokens',
     cfg_outline_gen_tokens: 'outline_gen_tokens',
     cfg_include_images: 'include_images',
+    cfg_xai_enabled: 'xai_enabled',
+    cfg_xai_key: 'xai_key',
 };
 
 const PROVIDER_MAP = {
@@ -80,7 +83,8 @@ async function saveSettings() {
         serper_key: document.getElementById('set-serper-key').value.trim(),
         serper_cache: document.getElementById('set-serper-cache').checked,
         brave_key: '',
-        xai_enabled: false,
+        xai_enabled: document.getElementById('set-xai-enabled').checked,
+        xai_key: document.getElementById('set-xai-key').value.trim(),
         max_perspective: parseInt(document.getElementById('set-max-perspective').value) || 5,
         max_conv_turn: parseInt(document.getElementById('set-max-conv-turn').value) || 5,
         search_top_k: parseInt(document.getElementById('set-search-top-k').value) || 5,
@@ -134,6 +138,8 @@ async function openSettings() {
     document.getElementById('set-outline-gen-tokens').value = s.outline_gen_tokens;
     document.getElementById('set-chunk-size').value = s.chunk_size;
     document.getElementById('set-include-images').checked = s.include_images;
+    document.getElementById('set-xai-enabled').checked = s.xai_enabled;
+    document.getElementById('set-xai-key').value = s.xai_key;
     document.getElementById('settings-modal').classList.remove('hidden');
 }
 

@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'storm'))
 
 from knowledge_storm import STORMWikiRunner, STORMWikiRunnerArguments, STORMWikiLMConfigs
 from knowledge_storm.lm import LitellmModel
-from knowledge_storm.rm import SearXNG, DuckDuckGoSearchRM, CachedSerperRM
+from knowledge_storm.rm import SearXNG, DuckDuckGoSearchRM, CachedSerperRM, XaiTwitterRM
 from knowledge_storm.storm_wiki.modules.callback import BaseCallbackHandler
 
 load_dotenv()
@@ -120,7 +120,7 @@ class StreamingCallbackHandler(BaseCallbackHandler):
 
 
 def create_runner(output_dir: str, settings: dict = None) -> tuple:
-    """Returns (runner, is_serper) tuple."""
+    """Returns (runner, is_serper, x_rm_or_none) tuple."""
     settings = settings or {}
     model_name = settings.get("openai_model") or os.getenv("LLM_MODEL", "claude-opus-4-6")
     api_key = settings.get("openai_key") or os.getenv("LLM_API_KEY", "")
@@ -164,12 +164,19 @@ def create_runner(output_dir: str, settings: dict = None) -> tuple:
     else:
         rm = DuckDuckGoSearchRM(k=search_top_k, snippet_chunk_size=chunk_size)
 
+    # xAI Twitter/X search
+    xai_enabled = bool(settings.get("xai_enabled", False))
+    xai_key = settings.get("xai_key", "")
+    x_rm = None
+    if xai_enabled and xai_key:
+        x_rm = XaiTwitterRM(xai_api_key=xai_key, k=search_top_k)
+
     include_images = bool(settings.get("include_images", False))
     args = STORMWikiRunnerArguments(output_dir=output_dir, max_perspective=max_perspective,
                                    max_conv_turn=max_conv_turn, search_top_k=search_top_k,
                                    retrieve_top_k=retrieve_top_k, max_thread_num=3,
                                    include_images=include_images)
-    return STORMWikiRunner(args=args, lm_configs=lm_configs, rm=rm), is_serper
+    return STORMWikiRunner(args=args, lm_configs=lm_configs, rm=rm, x_rm=x_rm), is_serper
 
 
 def run_pipeline(run_id: str, topic: str, runs_dict: dict, settings: dict = None):
