@@ -23,11 +23,24 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('brainstorm-modal').classList.add('hidden');
         }
     });
+
+    document.getElementById('refs-btn').addEventListener('click', () => {
+        document.getElementById('refs-modal').classList.remove('hidden');
+    });
+    document.getElementById('refs-modal-close').addEventListener('click', () => {
+        document.getElementById('refs-modal').classList.add('hidden');
+    });
+    document.getElementById('refs-modal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            document.getElementById('refs-modal').classList.add('hidden');
+        }
+    });
 });
 
 // --- Progress mode ---
 const SPINNER_SVG = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>';
 const CHECK_SVG = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+const ERROR_SVG = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
 
 function setStepState(stepName, state, detail) {
     const step = document.querySelector(`[data-step="${stepName}"]`);
@@ -35,9 +48,10 @@ function setStepState(stepName, state, detail) {
     const icon = step.querySelector('.step-icon');
     const detailEl = step.querySelector('.step-detail');
 
-    icon.className = 'step-icon mt-0.5 ' + (state === 'active' ? 'step-active' : state === 'done' ? 'step-done' : 'step-pending');
+    icon.className = 'step-icon mt-0.5 ' + (state === 'active' ? 'step-active' : state === 'done' ? 'step-done' : state === 'error' ? 'step-error' : 'step-pending');
     if (state === 'active') icon.innerHTML = SPINNER_SVG;
     else if (state === 'done') icon.innerHTML = CHECK_SVG;
+    else if (state === 'error') icon.innerHTML = ERROR_SVG;
 
     if (detail) detailEl.textContent = detail;
 }
@@ -115,6 +129,13 @@ function handleEvent(event, evtSource) {
             break;
         case 'error':
             evtSource.close();
+            // Mark the currently active step as errored
+            document.querySelectorAll('.step').forEach(step => {
+                if (step.querySelector('.step-active')) {
+                    const name = step.dataset.step;
+                    setStepState(name, 'error');
+                }
+            });
             document.getElementById('error-msg').textContent = d.message || 'An error occurred';
             document.getElementById('error-msg').classList.remove('hidden');
             break;
@@ -177,6 +198,8 @@ async function loadArticle(id) {
         // References
         if (Object.keys(citationDict).length > 0) {
             renderReferences(citationDict);
+            buildRefsModal(citationDict);
+            document.getElementById('refs-btn').classList.remove('hidden');
         }
 
         // Conversation log
@@ -265,6 +288,17 @@ function renderReferences(citations) {
             </div>
         </div>`;
     }).join('');
+}
+
+function buildRefsModal(citations) {
+    const list = document.getElementById('refs-modal-list');
+    const sorted = Object.entries(citations).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    list.innerHTML = sorted.map(([index, info]) =>
+        `<div class="flex gap-2 items-start py-1">
+            <span class="text-slate-400 shrink-0 font-mono text-xs mt-0.5">[${index}]</span>
+            <a href="${escapeAttr(info.url)}" target="_blank" class="text-blue-600 hover:underline break-all">${escapeHtml(info.url)}</a>
+        </div>`
+    ).join('');
 }
 
 function buildBrainstormModal(log) {

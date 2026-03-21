@@ -54,6 +54,13 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         failed_urls = {}
         if self.runner and hasattr(self.runner, 'rm') and hasattr(self.runner.rm, 'failed_urls'):
             failed_urls = self.runner.rm.failed_urls
+        if self.total_sources < 25:
+            self._put("gathering_end", {
+                "total_queries": self.total_queries, "total_sources": self.total_sources,
+                "failed_urls": {url: reason for url, reason in failed_urls.items()} if failed_urls else {},
+            })
+            self._put("error", {"message": f"There are not enough sources ({self.total_sources} found, 25 required)"})
+            raise RuntimeError(f"Not enough sources: {self.total_sources} < 25")
         self._put("gathering_end", {
             "total_queries": self.total_queries, "total_sources": self.total_sources,
             "failed_urls": {url: reason for url, reason in failed_urls.items()} if failed_urls else {},

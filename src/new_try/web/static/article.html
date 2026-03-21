@@ -100,9 +100,14 @@
             <div id="article-view" class="hidden">
                 <div class="text-center mb-8">
                     <h2 id="article-title" class="text-3xl font-bold text-slate-800 mb-4"></h2>
-                    <button id="brainstorm-btn" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
-                        See BrainSTORMing Process
-                    </button>
+                    <div class="flex items-center justify-center gap-3">
+                        <button id="brainstorm-btn" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
+                            See BrainSTORMing Process
+                        </button>
+                        <button id="refs-btn" class="hidden bg-slate-800 hover:bg-slate-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
+                            References
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex gap-8">
@@ -122,6 +127,19 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- References Modal -->
+    <div id="refs-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-slate-800">References</h3>
+                <button id="refs-modal-close" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="refs-modal-list" class="flex-1 overflow-y-auto px-6 py-4 space-y-2 text-sm"></div>
+        </div>
     </div>
 
     <!-- BrainSTORMing Modal -->
