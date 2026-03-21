@@ -251,10 +251,14 @@ async function loadNarrative(articleId, body) {
         const data = await res.json();
         if (data.html) {
             const div = document.createElement('div');
-            div.innerHTML = data.html;
             body.insertBefore(div, body.firstChild);
+            // Use Range to parse HTML and execute scripts
+            const range = document.createRange();
+            range.selectNode(div);
+            const fragment = range.createContextualFragment(data.html);
+            div.appendChild(fragment);
         }
-    } catch (e) {}
+    } catch (e) { console.error('Narrative load error:', e); }
 }
 
 // Clean article text like Streamlit's _display_main_article_text
