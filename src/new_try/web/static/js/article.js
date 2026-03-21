@@ -79,12 +79,17 @@ async function startProgress() {
 let isSerper = false;
 
 function gatheringSummary(d) {
+    if (d.is_serper) isSerper = true;
     let text = `Searched ${d.total_sources || 0} sources`;
-    if (isSerper && (d.total_cached || d.total_new)) {
-        text += `, ${d.total_cached || 0} cached, ${d.total_new || 0} new`;
-        if (d.total_new > 0) {
-            const cost = (d.total_new * 0.001).toFixed(3);
-            text += ` - Cost $${cost}`;
+    if (isSerper) {
+        const cached = d.total_cached || 0;
+        const newQ = d.total_new || 0;
+        if (cached || newQ) {
+            text += ` | ${d.total_queries || 0} queries, ${cached} cached, ${newQ} new`;
+            if (newQ > 0) {
+                const cost = (newQ * 0.001).toFixed(3);
+                text += ` - Cost $${cost}`;
+            }
         }
     }
     return text;

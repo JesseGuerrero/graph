@@ -29,6 +29,12 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         self.total_cached = 0
         self.total_new = 0
 
+    def _get_rm(self):
+        """Get the retrieval module from the runner (runner.retriever.rm)."""
+        if self.runner and hasattr(self.runner, 'retriever') and hasattr(self.runner.retriever, 'rm'):
+            return self.runner.retriever.rm
+        return None
+
     def _put(self, event_type, data=None):
         self.q.put({"type": event_type, "data": data or {}, "time": time.time()})
 
@@ -49,8 +55,9 @@ class StreamingCallbackHandler(BaseCallbackHandler):
 
         # Build per-query data with cache status for Serper
         query_details = []
-        if self.is_serper and self.runner and hasattr(self.runner, 'rm'):
-            cache_status = getattr(self.runner.rm, 'last_query_cache_status', {})
+        rm = self._get_rm()
+        if self.is_serper and rm:
+            cache_status = getattr(rm, 'last_query_cache_status', {})
             for q in search_queries:
                 was_cached = cache_status.get(q, False)
                 if was_cached:
@@ -72,7 +79,6 @@ class StreamingCallbackHandler(BaseCallbackHandler):
                 query_urls = [r.url for r in (dlg_turn.search_results or [])]
                 query_details.append({
                     "query": q,
-                    "cached": False,
                     "urls": list(set(query_urls)),
                 })
 
@@ -86,9 +92,10 @@ class StreamingCallbackHandler(BaseCallbackHandler):
 
     def on_information_gathering_end(self, **kwargs):
         # Report failed URL extractions like Streamlit does
+        rm = self._get_rm()
         failed_urls = {}
-        if self.runner and hasattr(self.runner, 'rm') and hasattr(self.runner.rm, 'failed_urls'):
-            failed_urls = self.runner.rm.failed_urls
+        if rm and hasattr(rm, 'failed_urls'):
+            failed_urls = rm.failed_urls
         end_data = {
             "total_queries": self.total_queries, "total_sources": self.total_sources,
             "total_cached": self.total_cached, "total_new": self.total_new,
@@ -151,7 +158,7 @@ def create_runner(output_dir: str, settings: dict = None) -> tuple:
     if search_provider == "serper" and serper_key:
         rm = CachedSerperRM(serper_search_api_key=serper_key, k=search_top_k,
                            cache_enabled=serper_cache, snippet_chunk_size=chunk_size)
-        is_serper = True
+        is_serper = bool(serper_cache)  # only show cache/cost info when caching enabled
     elif search_provider == "searxng" and searxng_url:
         rm = SearXNG(searxng_api_url=searxng_url, k=search_top_k, snippet_chunk_size=chunk_size)
     else:
