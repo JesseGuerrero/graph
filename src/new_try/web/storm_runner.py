@@ -131,7 +131,7 @@ def create_runner(output_dir: str, settings: dict = None) -> tuple:
 
     lm_configs = STORMWikiLMConfigs()
     lm_configs.set_conv_simulator_lm(
-        LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=1.0, top_p=0.9, **lm_kwargs))
+        LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=0.3, top_p=0.9, **lm_kwargs))
     lm_configs.set_question_asker_lm(
         LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=1.0, top_p=0.9, **lm_kwargs))
     outline_tokens = int(settings.get("outline_gen_tokens", 1000))
