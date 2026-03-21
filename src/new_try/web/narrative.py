@@ -315,14 +315,6 @@ evts.forEach((e,i)=>{{
     grp.append('path').attr('d',shapePath(c,150)).attr('transform','translate('+x+','+cy2+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
   }});
 
-  const ly=maxY+24;
-  // Word-wrap event name at 23 chars
-  const wrapText=(str,lim)=>{{const words=str.split(' ');const lines=[];let cur='';words.forEach(w=>{{if((cur+' '+w).trim().length>lim){{lines.push(cur.trim());cur=w}}else{{cur+=' '+w}}}});if(cur.trim())lines.push(cur.trim());return lines}};
-  const nameLines=wrapText(e.name,23);
-  nameLines.forEach((ln,li)=>{{
-    grp.append('text').attr('x',x).attr('y',ly+li*13).attr('text-anchor','middle').attr('fill','#1e293b').attr('opacity',.7).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',600).text(ln);
-  }});
-
   grp.append('rect').attr('x',x-10).attr('y',minY-24).attr('width',20).attr('height',14).attr('rx',3).attr('fill',gc).attr('opacity',.8);
   grp.append('text').attr('x',x).attr('y',minY-14).attr('text-anchor','middle').attr('fill','#fff').attr('font-size','8px').attr('font-family','monospace').attr('font-weight',700).text(e.tension);
 
