@@ -48,9 +48,9 @@
 }
 
 /* Article content styling */
-.article-content h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; }
-.article-content h2 { font-size: 1.375rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
-.article-content h3 { font-size: 1.125rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.article-content h1 { font-size: 1.5rem; font-weight: 700; color: #1e3a5f; margin: 1.5rem 0 0.75rem; }
+.article-content h2 { font-size: 1.2rem; font-weight: 400; color: #1e3a5f; margin: 1.25rem 0 0.5rem; }
+.article-content h3 { font-size: 1.05rem; font-weight: 400; color: #1e3a5f; margin: 1rem 0 0.5rem; }
 .article-content p { margin: 0.5rem 0; line-height: 1.75; }
 .article-content ul, .article-content ol { margin: 0.5rem 0 0.5rem 1.5rem; }
 .article-content li { margin: 0.25rem 0; line-height: 1.75; }
