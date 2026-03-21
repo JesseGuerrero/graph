@@ -11,3 +11,4 @@ web/output/
 .user_settings.json
 .serper_cache/
 *.serper_cache
+.image_cache/
