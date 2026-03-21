@@ -259,7 +259,35 @@ function cleanArticleText(text) {
     }
     // Fix markdown citation links: ]: "title" http -> ]: http
     text = text.replace(/\]:\s+".*?"\s+http/g, ']: http');
+    // Break up long paragraphs (more than 4 sentences) into shorter ones
+    text = breakLongParagraphs(text);
     return text;
+}
+
+function breakLongParagraphs(text) {
+    // Split into blocks by double newline (markdown paragraphs)
+    const blocks = text.split(/\n\n+/);
+    const result = [];
+    for (const block of blocks) {
+        // Skip headings, lists, blockquotes, empty lines
+        if (!block.trim() || /^[#\-\*>|]/.test(block.trim()) || block.trim().startsWith('[')) {
+            result.push(block);
+            continue;
+        }
+        // Split into sentences: period/!/? followed by space and uppercase or citation
+        const sentences = block.split(/(?<=\.(?:\[\d+\])*|[!?])\s+(?=[A-Z""])/);
+        if (sentences.length <= 4) {
+            result.push(block);
+            continue;
+        }
+        // Group into chunks of 3 sentences
+        const chunks = [];
+        for (let i = 0; i < sentences.length; i += 3) {
+            chunks.push(sentences.slice(i, i + 3).join(' '));
+        }
+        result.push(chunks.join('\n\n'));
+    }
+    return result.join('\n\n');
 }
 
 // Convert [i] citations to clickable links like Streamlit's add_inline_citation_link
