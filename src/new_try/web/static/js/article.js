@@ -76,6 +76,20 @@ async function startProgress() {
     };
 }
 
+let isSerper = false;
+
+function gatheringSummary(d) {
+    let text = `Searched ${d.total_sources || 0} sources`;
+    if (isSerper && (d.total_cached || d.total_new)) {
+        text += `, ${d.total_cached || 0} cached, ${d.total_new || 0} new`;
+        if (d.total_new > 0) {
+            const cost = (d.total_new * 0.001).toFixed(3);
+            text += ` - Cost $${cost}`;
+        }
+    }
+    return text;
+}
+
 function handleEvent(event, evtSource) {
     const t = event.type;
     const d = event.data;
@@ -89,17 +103,16 @@ function handleEvent(event, evtSource) {
             break;
         case 'gathering_start':
             setStepState('gathering', 'active');
+            if (d.is_serper) isSerper = true;
             break;
         case 'dialogue_turn':
-            setStepState('gathering', 'active', `Searched ${d.total_sources || 0} sources`);
-            // Show browsed URLs
-            if (d.browsed_urls && d.browsed_urls.length > 0) {
-                showBrowsedUrls(d.browsed_urls);
+            setStepState('gathering', 'active', gatheringSummary(d));
+            if (d.query_details && d.query_details.length > 0) {
+                showQueryGroup(d.query_details, d.is_serper);
             }
             break;
         case 'gathering_end':
-            setStepState('gathering', 'done', `Searched ${d.total_sources || 0} sources`);
-            // Show failed URL warnings like Streamlit
+            setStepState('gathering', 'done', gatheringSummary(d));
             if (d.failed_urls && Object.keys(d.failed_urls).length > 0) {
                 showFailedUrls(d.failed_urls);
             }
@@ -142,20 +155,29 @@ function handleEvent(event, evtSource) {
     }
 }
 
-function showBrowsedUrls(urls) {
+const CLOUD_SVG = '<svg class="w-3 h-3 inline-block text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>';
+
+function showQueryGroup(queryDetails, isSerperProvider) {
     const step = document.querySelector('[data-step="gathering"]');
     if (!step) return;
     let container = step.querySelector('.url-list');
     if (!container) {
         container = document.createElement('div');
-        container.className = 'url-list mt-1';
+        container.className = 'url-list mt-1 space-y-2';
         step.querySelector('div').appendChild(container);
     }
-    urls.forEach(url => {
-        const el = document.createElement('div');
-        el.className = 'text-xs text-slate-400 truncate';
-        el.innerHTML = `Browsed <a href="${escapeAttr(url)}" target="_blank" class="text-blue-400 hover:underline">${escapeHtml(url.length > 60 ? url.slice(0, 60) + '...' : url)}</a>`;
-        container.appendChild(el);
+    queryDetails.forEach(qd => {
+        const group = document.createElement('div');
+        group.className = 'text-xs';
+        const cacheIcon = (isSerperProvider && qd.cached) ? ` ${CLOUD_SVG}` : '';
+        const cacheLabel = (isSerperProvider && qd.cached) ? ' <span class="text-blue-400">cached</span>' : '';
+        let html = `<div class="text-slate-500 font-medium">${escapeHtml(qd.query)}${cacheIcon}${cacheLabel}</div>`;
+        (qd.urls || []).forEach(url => {
+            const short = url.length > 70 ? url.slice(0, 70) + '...' : url;
+            html += `<div class="text-slate-400 pl-3 truncate"><a href="${escapeAttr(url)}" target="_blank" class="hover:underline">${escapeHtml(short)}</a></div>`;
+        });
+        group.innerHTML = html;
+        container.appendChild(group);
     });
 }
 
