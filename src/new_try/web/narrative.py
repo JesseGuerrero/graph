@@ -294,6 +294,15 @@ evts.forEach((e,i)=>{{
 
   const grp=eg.append('g');
 
+  // Event bubble around participating entities
+  if(pr.length){{
+    const ctrY=(Math.min(...pr.map(c=>ey[i][c]))+Math.max(...pr.map(c=>ey[i][c])))/2;
+    const rx=Math.max(20,(Math.max(...pr.map(c=>ey[i][c]))-Math.min(...pr.map(c=>ey[i][c])))/2+16);
+    const ry=Math.max(18,rx*.85);
+    grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+14).attr('ry',ry+10).attr('fill',gc).attr('opacity',tn*.08).attr('filter','url(#{uid}-gl)');
+    grp.append('ellipse').attr('cx',x).attr('cy',ctrY).attr('rx',rx+6).attr('ry',ry+2).attr('fill','none').attr('stroke',gc).attr('stroke-width',tn>.7?1.5:1).attr('opacity',.15+tn*.3).attr('stroke-dasharray',tn>.7?'none':'3,3');
+  }}
+
   // Small faded shapes for non-participating entities
   const absent=co.filter(c=>!pr.includes(c));
   absent.forEach(c=>{{
