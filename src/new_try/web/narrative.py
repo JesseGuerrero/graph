@@ -220,7 +220,7 @@ function shapePath(id,size){{return d3.symbol().type(shapeMap[cs(id)]||d3.symbol
 const wrap=document.getElementById('{uid}-wrap');
 const svg=d3.select('#{uid}-svg');
 
-const ES=140,PL=50,PR=50,PT=80,PB=120;
+const ES=140,PL=50,PR=50,PT=80,PB=160;
 const W=PL+Math.max(evts.length,1)*ES+PR;
 
 const co=[];const cset=new Set();
@@ -229,7 +229,7 @@ evts.forEach(e=>e.characters.forEach(c=>{{if(!cset.has(c)){{cset.add(c);co.push(
 const CG=36;
 const H=PT+Math.max(co.length,1)*CG+PB+40;
 svg.attr('width',W).attr('height',H).attr('viewBox','0 0 '+W+' '+H);
-document.getElementById('{uid}-outer').style.height=H+'px';
+document.getElementById('{uid}-outer').style.height=Math.max(H,co.length*48+100)+'px';
 
 const by={{}};co.forEach((c,i)=>{{by[c]=PT+25+i*CG}});
 const ex=evts.map((_,i)=>PL+i*ES+ES/2);
