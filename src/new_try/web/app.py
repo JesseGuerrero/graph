@@ -166,6 +166,8 @@ def get_article(article_id: str):
         fpath = os.path.join(dirpath, fname)
         if os.path.exists(fpath):
             text = Path(fpath).read_text(encoding="utf-8", errors="replace")
+            # Strip replacement characters from any encoding issues
+            text = text.replace('\ufffd', '\u2014')  # replace with em-dash (most common source)
             result["article_text"] = text
             result["article_html"] = markdown.markdown(text, extensions=["tables", "fenced_code", "toc"])
             break
@@ -185,8 +187,8 @@ def get_article(article_id: str):
                 info = raw["url_to_info"].get(url, {})
                 citation_dict[str(index)] = {
                     "url": url,
-                    "title": info.get("title", ""),
-                    "snippets": info.get("snippets", []),
+                    "title": info.get("title", "").replace('\ufffd', '\u2014'),
+                    "snippets": [s.replace('\ufffd', '\u2014') for s in info.get("snippets", [])],
                 }
         result["citation_dict"] = citation_dict
 
