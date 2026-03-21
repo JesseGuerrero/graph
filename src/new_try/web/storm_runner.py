@@ -133,16 +133,16 @@ def create_runner(output_dir: str, settings: dict = None) -> tuple:
     lm_configs.set_conv_simulator_lm(
         LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=0.3, top_p=0.9, **lm_kwargs))
     lm_configs.set_question_asker_lm(
-        LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=1.0, top_p=0.9, **lm_kwargs))
+        LitellmModel(model=f"openai/{model_name}", max_tokens=1000, temperature=0.7, top_p=0.9, **lm_kwargs))
     outline_tokens = int(settings.get("outline_gen_tokens", 1000))
     article_tokens = int(settings.get("article_gen_tokens", 4000))
     polish_tokens = int(settings.get("article_polish_tokens", 8000))
     lm_configs.set_outline_gen_lm(
-        LitellmModel(model=f"openai/{model_name}", max_tokens=outline_tokens, temperature=1.0, top_p=0.9, **lm_kwargs))
+        LitellmModel(model=f"openai/{model_name}", max_tokens=outline_tokens, temperature=0.5, top_p=0.9, **lm_kwargs))
     lm_configs.set_article_gen_lm(
-        LitellmModel(model=f"openai/{model_name}", max_tokens=article_tokens, temperature=1.0, top_p=0.9, **lm_kwargs))
+        LitellmModel(model=f"openai/{model_name}", max_tokens=article_tokens, temperature=0.7, top_p=0.9, **lm_kwargs))
     lm_configs.set_article_polish_lm(
-        LitellmModel(model=f"openai/{model_name}", max_tokens=polish_tokens, temperature=1.0, top_p=0.9, **lm_kwargs))
+        LitellmModel(model=f"openai/{model_name}", max_tokens=polish_tokens, temperature=0.3, top_p=0.9, **lm_kwargs))
 
     max_perspective = int(settings.get("max_perspective", 5))
     max_conv_turn = int(settings.get("max_conv_turn", 5))
