@@ -78,9 +78,17 @@ function handleEvent(event, evtSource) {
             break;
         case 'dialogue_turn':
             setStepState('gathering', 'active', `Searched ${d.total_sources || 0} sources`);
+            // Show browsed URLs
+            if (d.browsed_urls && d.browsed_urls.length > 0) {
+                showBrowsedUrls(d.browsed_urls);
+            }
             break;
         case 'gathering_end':
             setStepState('gathering', 'done', `Searched ${d.total_sources || 0} sources`);
+            // Show failed URL warnings like Streamlit
+            if (d.failed_urls && Object.keys(d.failed_urls).length > 0) {
+                showFailedUrls(d.failed_urls);
+            }
             break;
         case 'organization_start':
             setStepState('outline', 'active');
@@ -111,6 +119,36 @@ function handleEvent(event, evtSource) {
             document.getElementById('error-msg').classList.remove('hidden');
             break;
     }
+}
+
+function showBrowsedUrls(urls) {
+    const step = document.querySelector('[data-step="gathering"]');
+    if (!step) return;
+    let container = step.querySelector('.url-list');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'url-list mt-1';
+        step.querySelector('div').appendChild(container);
+    }
+    urls.forEach(url => {
+        const el = document.createElement('div');
+        el.className = 'text-xs text-slate-400 truncate';
+        el.innerHTML = `Browsed <a href="${escapeAttr(url)}" target="_blank" class="text-blue-400 hover:underline">${escapeHtml(url.length > 60 ? url.slice(0, 60) + '...' : url)}</a>`;
+        container.appendChild(el);
+    });
+}
+
+function showFailedUrls(failedUrls) {
+    const step = document.querySelector('[data-step="gathering"]');
+    if (!step) return;
+    const parent = step.querySelector('div');
+    Object.entries(failedUrls).forEach(([url, reason]) => {
+        const el = document.createElement('div');
+        el.className = 'text-xs mt-1 px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-700';
+        const shortUrl = url.length > 70 ? url.slice(0, 70) + '...' : url;
+        el.innerHTML = `<a href="${escapeAttr(url)}" target="_blank" class="text-amber-700 hover:underline">${escapeHtml(shortUrl)}</a> — ${escapeHtml(reason)}`;
+        parent.appendChild(el);
+    });
 }
 
 // --- Article mode ---

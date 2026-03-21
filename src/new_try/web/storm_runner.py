@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'storm'))
 
 from knowledge_storm import STORMWikiRunner, STORMWikiRunnerArguments, STORMWikiLMConfigs
 from knowledge_storm.lm import LitellmModel
-from knowledge_storm.rm import SearXNG, DuckDuckGoSearchRM
+from knowledge_storm.rm import SearXNG, DuckDuckGoSearchRM, CachedSerperRM
 from knowledge_storm.storm_wiki.modules.callback import BaseCallbackHandler
 
 load_dotenv()
@@ -20,8 +20,9 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 
 
 class StreamingCallbackHandler(BaseCallbackHandler):
-    def __init__(self, q: queue.Queue):
+    def __init__(self, q: queue.Queue, runner=None):
         self.q = q
+        self.runner = runner
         self.total_queries = 0
         self.total_sources = 0
 
@@ -38,18 +39,24 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         self._put("gathering_start")
 
     def on_dialogue_turn_end(self, dlg_turn, **kwargs):
+        urls = list(set([r.url for r in dlg_turn.search_results])) if dlg_turn.search_results else []
         queries = len(dlg_turn.search_queries) if dlg_turn.search_queries else 0
-        sources = len(dlg_turn.search_results) if dlg_turn.search_results else 0
         self.total_queries += queries
-        self.total_sources += sources
+        self.total_sources += len(urls)
         self._put("dialogue_turn", {
-            "queries": queries, "urls": sources,
+            "queries": queries, "urls": len(urls),
             "total_queries": self.total_queries, "total_sources": self.total_sources,
+            "browsed_urls": urls,
         })
 
     def on_information_gathering_end(self, **kwargs):
+        # Report failed URL extractions like Streamlit does
+        failed_urls = {}
+        if self.runner and hasattr(self.runner, 'rm') and hasattr(self.runner.rm, 'failed_urls'):
+            failed_urls = self.runner.rm.failed_urls
         self._put("gathering_end", {
             "total_queries": self.total_queries, "total_sources": self.total_sources,
+            "failed_urls": {url: reason for url, reason in failed_urls.items()} if failed_urls else {},
         })
 
     def on_information_organization_start(self, **kwargs):
@@ -93,10 +100,17 @@ def create_runner(output_dir: str, settings: dict = None) -> STORMWikiRunner:
     retrieve_top_k = int(settings.get("retrieve_top_k", 10))
 
     search_provider = settings.get("search_provider", "searxng")
-    if search_provider == "searxng" and searxng_url:
-        rm = SearXNG(searxng_api_url=searxng_url, k=search_top_k)
+    chunk_size = int(settings.get("chunk_size", 1000))
+    serper_key = settings.get("serper_key", "")
+    serper_cache = settings.get("serper_cache", True)
+
+    if search_provider == "serper" and serper_key:
+        rm = CachedSerperRM(serper_search_api_key=serper_key, k=search_top_k,
+                           cache_enabled=serper_cache, snippet_chunk_size=chunk_size)
+    elif search_provider == "searxng" and searxng_url:
+        rm = SearXNG(searxng_api_url=searxng_url, k=search_top_k, snippet_chunk_size=chunk_size)
     else:
-        rm = DuckDuckGoSearchRM(k=search_top_k)
+        rm = DuckDuckGoSearchRM(k=search_top_k, snippet_chunk_size=chunk_size)
 
     args = STORMWikiRunnerArguments(output_dir=output_dir, max_perspective=max_perspective,
                                    max_conv_turn=max_conv_turn, search_top_k=search_top_k,
@@ -109,7 +123,7 @@ def run_pipeline(run_id: str, topic: str, runs_dict: dict, settings: dict = None
     q = run["queue"]
     try:
         runner = create_runner(OUTPUT_DIR, settings)
-        callback = StreamingCallbackHandler(q)
+        callback = StreamingCallbackHandler(q, runner=runner)
         runner.run(topic=topic, callback_handler=callback)
         q.put({"type": "polishing_start", "data": {}, "time": time.time()})
         q.put({"type": "done", "data": {"article_dir": runner.article_dir_name}, "time": time.time()})
