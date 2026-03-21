@@ -220,6 +220,9 @@ async function loadArticle(id) {
         const body = document.getElementById('article-body');
         body.innerHTML = marked.parse(articleText);
 
+        // Inject narrative storyline above the article content
+        loadNarrative(id, body);
+
         buildTOC(body);
 
         // References
@@ -239,6 +242,19 @@ async function loadArticle(id) {
     } catch (e) {
         document.getElementById('article-body').innerHTML = `<p class="text-red-500">Failed to load article: ${e.message}</p>`;
     }
+}
+
+async function loadNarrative(articleId, body) {
+    try {
+        const res = await fetch(`/api/articles/${encodeURIComponent(articleId)}/narrative`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.html) {
+            const div = document.createElement('div');
+            div.innerHTML = data.html;
+            body.insertBefore(div, body.firstChild);
+        }
+    } catch (e) {}
 }
 
 // Clean article text like Streamlit's _display_main_article_text

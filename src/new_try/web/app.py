@@ -200,6 +200,25 @@ def get_article(article_id: str):
     return result
 
 
+@app.get("/api/articles/{article_id}/narrative")
+def get_narrative(article_id: str):
+    from narrative import build_narrative_data, generate_storyline_div
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+    # Read article text
+    for fname in ["storm_gen_article_polished.txt", "storm_gen_article.txt"]:
+        fpath = os.path.join(dirpath, fname)
+        if os.path.exists(fpath):
+            text = Path(fpath).read_text(encoding="utf-8", errors="replace")
+            text = text.replace('\ufffd', '\u2014')
+            topic = _dir_name_to_topic(article_id)
+            data = build_narrative_data(text, topic)
+            html = generate_storyline_div(data)
+            return {"html": html}
+    raise HTTPException(404, "No article text found")
+
+
 @app.get("/api/articles/{article_id}/images/{filename}")
 def get_article_image(article_id: str, filename: str):
     from fastapi.responses import FileResponse
