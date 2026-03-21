@@ -294,8 +294,7 @@ evts.forEach((e,i)=>{{
 
   pr.forEach(c=>{{
     const cy2=ey[i][c];
-    grp.append('path').attr('d',shapePath(c,120)).attr('transform','translate('+x+','+cy2+')').attr('fill',cc(c)).attr('stroke',cc(c)).attr('stroke-width',1).attr('stroke-opacity',.4);
-    grp.append('path').attr('d',shapePath(c,30)).attr('transform','translate('+x+','+cy2+')').attr('fill','#fff').attr('opacity',.8);
+    grp.append('path').attr('d',shapePath(c,150)).attr('transform','translate('+x+','+cy2+')').attr('fill',cc(c)).attr('stroke','#fff').attr('stroke-width',1.5).attr('opacity',.9);
   }});
 
   const ly=maxY+24;
