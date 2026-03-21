@@ -255,9 +255,9 @@ const sg=svg.append('g');
 let ss2=0,ls2=evts[0]?.section||'',si2=0;
 function drawSec(start,end,name,idx){{
   const x1=ex[start]-ES/2,x2=ex[end]+ES/2;
-  sg.append('rect').attr('x',x1).attr('y',0).attr('width',x2-x1).attr('height',H).attr('fill',scols[idx%scols.length]).attr('opacity',.02);
-  sg.append('text').attr('x',(x1+x2)/2).attr('y',22).attr('text-anchor','middle').attr('fill',scols[idx%scols.length]).attr('opacity',.6).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',700).attr('letter-spacing','.08em').text(name.toUpperCase().substring(0,35));
-  sg.append('line').attr('x1',x2).attr('y1',0).attr('x2',x2).attr('y2',H).attr('stroke',scols[idx%scols.length]).attr('stroke-width',.5).attr('opacity',.1);
+  sg.append('rect').attr('x',x1).attr('y',0).attr('width',x2-x1).attr('height',H).attr('fill',scols[idx%scols.length]).attr('opacity',.07).attr('rx',4);
+  sg.append('text').attr('x',(x1+x2)/2).attr('y',22).attr('text-anchor','middle').attr('fill',scols[idx%scols.length]).attr('opacity',.7).attr('font-family','system-ui,sans-serif').attr('font-size','11px').attr('font-weight',700).attr('letter-spacing','.08em').text(name.toUpperCase().substring(0,35));
+  sg.append('line').attr('x1',x2).attr('y1',0).attr('x2',x2).attr('y2',H).attr('stroke',scols[idx%scols.length]).attr('stroke-width',1).attr('opacity',.15);
 }}
 evts.forEach((e,i)=>{{if(e.section!==ls2&&i>0){{drawSec(ss2,i-1,ls2,si2);si2++;ss2=i}}ls2=e.section}});
 if(evts.length) drawSec(ss2,evts.length-1,ls2,si2);
