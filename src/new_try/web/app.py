@@ -19,6 +19,8 @@ from storm_runner import run_pipeline, OUTPUT_DIR
 
 load_dotenv()
 
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "storm", "frontend", "demo_light", ".user_settings.json")
+
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -29,6 +31,23 @@ runs_lock = threading.Lock()
 class RunRequest(BaseModel):
     topic: str
     settings: dict = {}
+
+
+@app.get("/api/settings")
+def get_settings():
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+@app.post("/api/settings")
+def save_settings(settings: dict):
+    os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=2)
+    return {"ok": True}
 
 
 @app.get("/")
@@ -110,13 +129,15 @@ def get_article(article_id: str):
     if not os.path.isdir(dirpath):
         raise HTTPException(404, "Article not found")
 
-    result = {"topic": article_id.replace("_", " "), "article_html": "", "outline": "", "references": {}, "conversation_log": []}
+    result = {"topic": article_id.replace("_", " "), "article_text": "", "article_html": "",
+              "outline": "", "citation_dict": {}, "conversation_log": []}
 
     # Read polished article first, fall back to draft
     for fname in ["storm_gen_article_polished.txt", "storm_gen_article.txt"]:
         fpath = os.path.join(dirpath, fname)
         if os.path.exists(fpath):
             text = Path(fpath).read_text(encoding="utf-8", errors="replace")
+            result["article_text"] = text
             result["article_html"] = markdown.markdown(text, extensions=["tables", "fenced_code", "toc"])
             break
 
@@ -125,10 +146,20 @@ def get_article(article_id: str):
     if os.path.exists(outline_path):
         result["outline"] = Path(outline_path).read_text(encoding="utf-8", errors="replace")
 
-    # References
+    # References - build citation_dict like Streamlit does
     url_info_path = os.path.join(dirpath, "url_to_info.json")
     if os.path.exists(url_info_path):
-        result["references"] = json.loads(Path(url_info_path).read_text(encoding="utf-8", errors="replace"))
+        raw = json.loads(Path(url_info_path).read_text(encoding="utf-8", errors="replace"))
+        citation_dict = {}
+        if "url_to_unified_index" in raw and "url_to_info" in raw:
+            for url, index in raw["url_to_unified_index"].items():
+                info = raw["url_to_info"].get(url, {})
+                citation_dict[str(index)] = {
+                    "url": url,
+                    "title": info.get("title", ""),
+                    "snippets": info.get("snippets", []),
+                }
+        result["citation_dict"] = citation_dict
 
     # Conversation log
     conv_path = os.path.join(dirpath, "conversation_log.json")
