@@ -3,6 +3,7 @@ const runId = params.get('run_id');
 const articleId = params.get('id');
 
 let conversationLog = [];
+let citationDict = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     if (runId) {
@@ -45,14 +46,12 @@ async function startProgress() {
     const progressView = document.getElementById('progress-view');
     progressView.classList.remove('hidden');
 
-    // Fetch topic
     try {
         const status = await api(`/api/run/${runId}/status`);
         document.getElementById('progress-topic').textContent = status.topic;
         document.title = `STORM - ${status.topic}`;
     } catch (e) {}
 
-    // SSE
     const evtSource = new EventSource(`/api/run/${runId}/events`);
     evtSource.onmessage = (e) => {
         const event = JSON.parse(e.data);
@@ -124,19 +123,25 @@ async function loadArticle(id) {
         document.getElementById('article-title').textContent = data.topic;
         document.title = `STORM - ${data.topic}`;
 
-        // Render article
-        const body = document.getElementById('article-body');
-        body.innerHTML = data.article_html;
+        citationDict = data.citation_dict || {};
 
-        // Build TOC from article headings
+        // Process raw article text like Streamlit does
+        let articleText = data.article_text || '';
+        articleText = cleanArticleText(articleText);
+        articleText = addInlineCitationLinks(articleText, citationDict);
+
+        // Render processed markdown to HTML
+        const body = document.getElementById('article-body');
+        body.innerHTML = marked.parse(articleText);
+
         buildTOC(body);
 
         // References
-        if (data.references && Object.keys(data.references).length > 0) {
-            renderReferences(data.references);
+        if (Object.keys(citationDict).length > 0) {
+            renderReferences(citationDict);
         }
 
-        // Conversation log for brainstorming
+        // Conversation log
         if (data.conversation_log && data.conversation_log.length > 0) {
             conversationLog = data.conversation_log;
             buildBrainstormModal(data.conversation_log);
@@ -146,6 +151,36 @@ async function loadArticle(id) {
     } catch (e) {
         document.getElementById('article-body').innerHTML = `<p class="text-red-500">Failed to load article: ${e.message}</p>`;
     }
+}
+
+// Clean article text like Streamlit's _display_main_article_text
+function cleanArticleText(text) {
+    // Remove "Write the lead section:" prefix
+    const leadIdx = text.indexOf('Write the lead section:');
+    if (leadIdx !== -1) {
+        text = text.substring(leadIdx + 'Write the lead section:'.length);
+    }
+    // Remove first heading line (the title is shown separately)
+    if (text.trimStart().startsWith('#')) {
+        const lines = text.split('\n');
+        const firstNonEmpty = lines.findIndex(l => l.trim().length > 0);
+        if (firstNonEmpty >= 0 && lines[firstNonEmpty].trimStart().startsWith('#')) {
+            lines.splice(firstNonEmpty, 1);
+        }
+        text = lines.join('\n');
+    }
+    // Fix markdown citation links: ]: "title" http -> ]: http
+    text = text.replace(/\]:\s+".*?"\s+http/g, ']: http');
+    return text;
+}
+
+// Convert [i] citations to clickable links like Streamlit's add_inline_citation_link
+function addInlineCitationLinks(text, citations) {
+    return text.replace(/\[(\d+)\]/g, (match, num) => {
+        const ref = citations[num];
+        const url = ref ? ref.url : '#ref-' + num;
+        return `[[${num}]](${url})`;
+    });
 }
 
 function buildTOC(container) {
@@ -169,17 +204,27 @@ function buildTOC(container) {
     });
 }
 
-function renderReferences(refs) {
+function renderReferences(citations) {
     const section = document.getElementById('references-section');
     const list = document.getElementById('references-list');
     section.classList.remove('hidden');
 
-    const entries = Object.entries(refs);
-    list.innerHTML = entries.map(([url, info], i) => {
-        const title = info.title || info.snippet?.slice(0, 80) || url;
-        return `<div class="flex gap-2" id="ref-${i + 1}">
-            <span class="text-slate-400 shrink-0">[${i + 1}]</span>
-            <a href="${escapeAttr(url)}" target="_blank" class="text-blue-600 hover:underline break-all">${escapeHtml(title)}</a>
+    // Sort by citation index
+    const sorted = Object.entries(citations).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+    list.innerHTML = sorted.map(([index, info]) => {
+        const snippetHtml = (info.snippets || []).map(s =>
+            `<p class="text-xs text-slate-500 mt-1 leading-relaxed">${escapeHtml(s).substring(0, 200)}${s.length > 200 ? '...' : ''}</p>`
+        ).join('');
+        return `<div class="border-b border-gray-100 pb-2 mb-2" id="ref-${index}">
+            <div class="flex gap-2 items-start">
+                <span class="text-slate-400 shrink-0 font-mono text-xs mt-0.5">[${index}]</span>
+                <div class="min-w-0">
+                    <a href="${escapeAttr(info.url)}" target="_blank" class="text-blue-600 hover:underline text-sm font-medium break-all">${escapeHtml(info.title || info.url)}</a>
+                    <p class="text-xs text-slate-400 break-all">${escapeHtml(info.url)}</p>
+                    ${snippetHtml}
+                </div>
+            </div>
         </div>`;
     }).join('');
 }
@@ -188,12 +233,30 @@ function buildBrainstormModal(log) {
     const tabs = document.getElementById('persona-tabs');
     const content = document.getElementById('persona-content');
 
-    tabs.innerHTML = log.map((conv, i) => {
-        const name = conv.perspective || conv.persona || `Persona ${i + 1}`;
-        return `<button class="persona-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${i === 0 ? 'active' : ''}" data-index="${i}">${escapeHtml(name)}</button>`;
+    // Parse persona names like Streamlit: split by ": " or "- "
+    const parsed = log.map(conv => {
+        const perspective = conv.perspective || '';
+        let name, description;
+        if (perspective.includes(': ')) {
+            [name, ...description] = perspective.split(': ');
+            description = description.join(': ');
+        } else if (perspective.includes('- ')) {
+            [name, ...description] = perspective.split('- ');
+            description = description.join('- ');
+        } else {
+            name = '';
+            description = perspective;
+        }
+        return { name: name.trim(), description: description.trim(), turns: conv.dlg_turns || [] };
+    });
+
+    tabs.innerHTML = parsed.map((p, i) => {
+        const label = p.name || `Persona ${i + 1}`;
+        return `<button class="persona-tab px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${i === 0 ? 'active' : ''}" data-index="${i}">${escapeHtml(label)}</button>`;
     }).join('');
 
-    // Show first persona
+    // Store parsed data for showPersona
+    conversationLog = parsed;
     showPersona(0);
 
     tabs.addEventListener('click', (e) => {
@@ -207,32 +270,29 @@ function buildBrainstormModal(log) {
 
 function showPersona(index) {
     const content = document.getElementById('persona-content');
-    const conv = conversationLog[index];
-    if (!conv) return;
-
-    const description = conv.perspective || conv.persona || '';
-    const turns = conv.dlg_turns || conv.dialogue_turns || [];
+    const persona = conversationLog[index];
+    if (!persona) return;
 
     let html = '';
-    if (description) {
-        html += `<div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">${escapeHtml(description)}</div>`;
+
+    // Show persona description
+    if (persona.description) {
+        html += `<div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">${escapeHtml(persona.description)}</div>`;
     }
 
-    turns.forEach(turn => {
-        const queries = turn.queries || turn.search_queries || [];
-        const utterance = turn.utterance || turn.content || '';
-        const role = turn.role || 'user';
-
-        if (role === 'user' || turn.agent_utterance === undefined) {
+    // Render dialogue turns using Streamlit's format: user_utterance / agent_utterance
+    (persona.turns || []).forEach(turn => {
+        if (turn.user_utterance) {
             html += `<div class="flex gap-3 justify-end">
-                <div class="chat-bubble-user px-4 py-2.5 max-w-lg text-sm">${escapeHtml(utterance)}</div>
+                <div class="chat-bubble-user px-4 py-2.5 max-w-lg text-sm font-medium">${escapeHtml(turn.user_utterance)}</div>
                 <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
             </div>`;
         }
         if (turn.agent_utterance !== undefined) {
-            const agentText = turn.agent_utterance || '';
+            // Strip citations from agent utterance like Streamlit does
+            const agentText = removeCitations(turn.agent_utterance || '');
             html += `<div class="flex gap-3">
                 <div class="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -243,6 +303,11 @@ function showPersona(index) {
     });
 
     content.innerHTML = html || '<p class="text-slate-400 text-center py-8">No conversation data available</p>';
+}
+
+// Remove citations like Streamlit's remove_citations
+function removeCitations(text) {
+    return text.replace(/ ?\[\d+/g, '').replace(/\|/g, '').replace(/\]/g, '');
 }
 
 function escapeHtml(s) {
