@@ -792,7 +792,7 @@ class CachedSerperRM(dspy.Retrieve):
     def _get_encoder(self):
         if self._encoder is None:
             from sentence_transformers import SentenceTransformer
-            self._encoder = SentenceTransformer("paraphrase-MiniLM-L6-v2", device="cpu")
+            self._encoder = SentenceTransformer("paraphrase-MiniLM-L6-v2")
         return self._encoder
 
     def _build_semantic_index(self):

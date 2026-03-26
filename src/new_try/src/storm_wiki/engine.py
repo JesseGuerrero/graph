@@ -368,7 +368,7 @@ class STORMWikiRunner(Engine):
             return
 
         # Encode image texts and section texts
-        encoder = SentenceTransformer("paraphrase-MiniLM-L6-v2", device="cpu")
+        encoder = SentenceTransformer("paraphrase-MiniLM-L6-v2")
         image_texts = [img["text"] for img in all_images]
         image_embeddings = encoder.encode(image_texts)
 
