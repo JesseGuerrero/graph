@@ -3,6 +3,7 @@ import os
 import queue
 import re
 import shutil
+import sys
 import threading
 import time
 import uuid
@@ -224,6 +225,102 @@ def get_article_image(article_id: str, filename: str):
     media_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
                    'gif': 'image/gif', 'webp': 'image/webp'}
     return FileResponse(img_path, media_type=media_types.get(ext, 'image/jpeg'))
+
+
+@app.get("/api/articles/{article_id}/kg")
+def get_kg(article_id: str):
+    """Return cached KG taxonomy JSON, or 404 if not built yet."""
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+    kg_path = os.path.join(dirpath, "kg_taxonomy.json")
+    if not os.path.exists(kg_path):
+        raise HTTPException(404, "Knowledge graph not built yet")
+    return json.loads(Path(kg_path).read_text(encoding="utf-8"))
+
+
+@app.post("/api/articles/{article_id}/kg/build")
+def build_kg(article_id: str):
+    """Build KG taxonomy via LLM. Streams SSE progress events."""
+    import asyncio
+    from storm_runner import create_runner
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from src.taxonomy import KGTaxonomyBuilder, create_llm_fn_openai
+
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+
+    # Read article text
+    article_text = ""
+    for fname in ["storm_gen_article_polished.txt", "storm_gen_article.txt"]:
+        fpath = os.path.join(dirpath, fname)
+        if os.path.exists(fpath):
+            article_text = Path(fpath).read_text(encoding="utf-8", errors="replace")
+            article_text = article_text.replace('\ufffd', '\u2014')
+            break
+    if not article_text:
+        raise HTTPException(404, "No article text found")
+
+    # Get LLM settings
+    settings = {}
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            settings = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    api_key = settings.get("cfg_llm_key") or os.getenv("LLM_API_KEY", "")
+    api_base = settings.get("cfg_llm_url") or os.getenv("LLM_API_BASE", "")
+    model = settings.get("cfg_llm_model") or os.getenv("LLM_MODEL", "claude-opus-4-6")
+
+    if not api_key or not api_base:
+        raise HTTPException(400, "LLM API key and URL must be configured in settings")
+
+    q = queue.Queue()
+    topic = _dir_name_to_topic(article_id)
+
+    def run_build():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            llm = create_llm_fn_openai(base_url=api_base, api_key=api_key, model=model)
+
+            def on_node(node):
+                q.put({"type": "node", "data": {"label": node.label, "depth": node.depth, "node_type": node.node_type.value}})
+
+            builder = KGTaxonomyBuilder(
+                llm_fn=llm, markdown=article_text, title=topic,
+                max_depth=6, on_node=on_node,
+            )
+            kg = loop.run_until_complete(builder.build())
+            tree = kg.to_tree_dict()
+
+            # Cache to disk
+            kg_path = os.path.join(dirpath, "kg_taxonomy.json")
+            with open(kg_path, "w", encoding="utf-8") as f:
+                json.dump(tree, f, indent=2)
+
+            q.put({"type": "done", "data": tree})
+        except Exception as e:
+            q.put({"type": "error", "data": {"message": str(e)}})
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=run_build, daemon=True)
+    t.start()
+
+    def stream():
+        while True:
+            try:
+                event = q.get(timeout=60)
+                yield f"data: {json.dumps(event)}\n\n"
+                if event["type"] in ("done", "error"):
+                    break
+            except queue.Empty:
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
 
 
 @app.delete("/api/articles/{article_id}")
