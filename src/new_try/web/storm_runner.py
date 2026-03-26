@@ -7,7 +7,7 @@ import traceback
 from dotenv import load_dotenv
 
 # Use local storm directory instead of any installed package
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from knowledge_storm import STORMWikiRunner, STORMWikiRunnerArguments, STORMWikiLMConfigs
 from knowledge_storm.lm import LitellmModel
