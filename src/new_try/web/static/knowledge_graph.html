@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STORM - Knowledge Graph</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-56 bg-slate-800 text-white min-h-screen flex flex-col fixed lg:static z-30 transition-transform -translate-x-full lg:translate-x-0">
+        <div class="p-4">
+            <a href="/static/index.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2.5 rounded-lg text-sm font-medium transition">
+                + Deep Search
+            </a>
+        </div>
+        <nav class="flex-1 px-3 space-y-1 overflow-hidden">
+            <a href="/static/library.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white transition">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                My Library
+            </a>
+            <div id="sidebar-history" class="mt-2 space-y-0.5"></div>
+        </nav>
+        <div class="p-4 text-xs text-slate-500">STORM Wiki</div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <h1 class="text-lg font-bold text-slate-800">STORM</h1>
+            <a href="#" id="btn-knowledge-graph" class="px-3 py-1.5 text-sm font-medium rounded-lg transition bg-blue-600 text-white">Knowledge Graph</a>
+            <button class="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-default">TBD</button>
+            <div class="flex-1"></div>
+        </header>
+
+        <main class="flex-1 px-8 py-6">
+            <h2 id="kg-title" class="text-2xl font-bold text-slate-800 mb-6 text-center"></h2>
+            <div class="flex items-center justify-center mb-4">
+                <a id="back-to-article" href="#" class="text-sm text-blue-600 hover:text-blue-800 transition">Back to Article</a>
+            </div>
+            <div id="kg-container" class="bg-white rounded-xl border border-gray-200 w-full" style="height: 70vh;">
+                <p class="text-center text-slate-400 pt-12">Loading knowledge graph...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/knowledge_graph.js"></script>
+</body>
+</html>

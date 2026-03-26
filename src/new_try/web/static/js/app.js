@@ -28,12 +28,15 @@ async function api(url, options = {}) {
 document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('sidebar-history');
     if (!container) return;
+    const isKgPage = window.location.pathname.includes('knowledge_graph');
     try {
         const articles = await api('/api/articles');
         const recent = articles.slice(0, 10);
         recent.forEach(a => {
             const link = document.createElement('a');
-            link.href = `/static/article.html?id=${a.id}`;
+            link.href = isKgPage
+                ? `/static/knowledge_graph.html?id=${a.id}`
+                : `/static/article.html?id=${a.id}`;
             link.className = 'block px-3 py-1.5 text-xs text-slate-400 hover:text-white truncate transition';
             link.textContent = a.topic;
             link.title = a.topic;

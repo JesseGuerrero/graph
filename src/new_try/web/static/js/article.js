@@ -35,6 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('refs-modal').classList.add('hidden');
         }
     });
+
+    // Knowledge Graph button
+    const kgBtn = document.getElementById('btn-knowledge-graph');
+    if (kgBtn) {
+        kgBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = articleId || params.get('run_id');
+            if (id) window.location.href = `/static/knowledge_graph.html?id=${id}`;
+        });
+    }
 });
 
 // --- Progress mode ---
