@@ -6,8 +6,11 @@ import time
 import traceback
 from dotenv import load_dotenv
 
-# Use local storm directory instead of any installed package
+# Register src/ as the knowledge_storm package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import importlib
+src = importlib.import_module('src')
+sys.modules['knowledge_storm'] = src
 
 from knowledge_storm import STORMWikiRunner, STORMWikiRunnerArguments, STORMWikiLMConfigs
 from knowledge_storm.lm import LitellmModel
