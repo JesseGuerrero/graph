@@ -5,18 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "deprecation==2.1.0",
     "duckduckgo-search>=8.1.1",
-    "extra-streamlit-components==0.1.60",
     "fastapi>=0.135.1",
     "markdown>=3.10.2",
     "python-dotenv>=1.2.2",
-    "st-pages==0.4.5",
-    "streamlit>=1.55.0",
-    "streamlit-card>=1.0.2",
-    "streamlit-extras>=0.7.8",
-    "streamlit-float>=0.4.0",
-    "streamlit-option-menu>=0.4.0",
-    "unidecode>=1.4.0",
     "uvicorn>=0.42.0",
 ]

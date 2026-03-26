@@ -20,8 +20,7 @@ from storm_runner import run_pipeline, OUTPUT_DIR
 
 load_dotenv()
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "..", "storm", "frontend", "demo_light", ".user_settings.json")
-STREAMLIT_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "storm", "frontend", "demo_light", "DEMO_WORKING_DIR")
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), ".user_settings.json")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -109,7 +108,7 @@ def _dir_name_to_topic(name):
     return cleaned.replace("_", " ")
 
 
-def _scan_articles_dir(root_dir, source="web"):
+def _scan_articles_dir(root_dir):
     """Scan a directory for STORM article folders."""
     results = []
     if not os.path.exists(root_dir):
@@ -126,30 +125,20 @@ def _scan_articles_dir(root_dir, source="web"):
                 "topic": _dir_name_to_topic(name),
                 "created_at": stat.st_mtime,
                 "type": "article",
-                "source": source,
             })
     return results
 
 
 @app.get("/api/articles")
 def list_articles():
-    articles = _scan_articles_dir(OUTPUT_DIR, "web")
-    # Also include articles from Streamlit's output dir
-    seen_ids = {a["id"] for a in articles}
-    for a in _scan_articles_dir(STREAMLIT_OUTPUT_DIR, "streamlit"):
-        if a["id"] not in seen_ids:
-            articles.append(a)
+    articles = _scan_articles_dir(OUTPUT_DIR)
     articles.sort(key=lambda a: a["created_at"], reverse=True)
     return articles
 
 
 def _find_article_dir(article_id: str):
-    """Find article directory, checking web output first then Streamlit."""
-    for root in [OUTPUT_DIR, STREAMLIT_OUTPUT_DIR]:
-        dirpath = os.path.join(root, article_id)
-        if os.path.isdir(dirpath):
-            return dirpath
-    return None
+    dirpath = os.path.join(OUTPUT_DIR, article_id)
+    return dirpath if os.path.isdir(dirpath) else None
 
 
 @app.get("/api/articles/{article_id}")
