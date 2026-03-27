@@ -40,32 +40,31 @@
         </header>
 
         <!-- Content -->
-        <main class="flex-1 flex items-start justify-center pt-24 px-4">
-            <div class="w-full max-w-2xl">
-                <h2 class="text-3xl font-bold text-center text-slate-800 mb-8">Create an Article</h2>
-
-                <!-- Search card -->
-                <form id="topic-form" class="bg-white rounded-xl border border-gray-200 shadow-sm p-1.5 flex items-center gap-2 mb-10">
-                    <input id="topic-input" type="text" placeholder="What topic would you like to explore?"
-                           class="flex-1 px-4 py-3 text-sm outline-none rounded-lg" autocomplete="off">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                    </button>
-                </form>
-
-                <!-- Example cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="example-card bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm transition">
-                        <h3 class="font-medium text-slate-800 text-sm mb-1">Quantum Computing</h3>
-                        <p class="text-xs text-slate-500">Explore the fundamentals and latest advances in quantum computation</p>
+        <main class="flex-1 flex flex-col px-6 py-6 overflow-hidden">
+            <div class="flex items-center gap-4 mb-4">
+                <input id="title-input" type="text" placeholder="Article title..."
+                       class="text-xl font-bold text-slate-800 outline-none flex-1 bg-transparent border-b border-transparent focus:border-blue-300 pb-1 transition">
+                <button id="save-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Save Article
+                </button>
+            </div>
+            <div class="flex flex-1 gap-4 overflow-hidden">
+                <!-- Editor -->
+                <div class="flex-1 flex flex-col min-w-0">
+                    <div class="text-xs text-slate-400 mb-1 flex items-center justify-between">
+                        <span>Markdown</span>
+                        <button id="toggle-preview" class="text-blue-500 hover:text-blue-700 text-xs font-medium">Show Preview</button>
                     </div>
-                    <div class="example-card bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm transition">
-                        <h3 class="font-medium text-slate-800 text-sm mb-1">CRISPR Gene Editing</h3>
-                        <p class="text-xs text-slate-500">How CRISPR-Cas9 is revolutionizing genetic engineering and medicine</p>
-                    </div>
-                    <div class="example-card bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-300 hover:shadow-sm transition">
-                        <h3 class="font-medium text-slate-800 text-sm mb-1">Large Language Models</h3>
-                        <p class="text-xs text-slate-500">Understanding the architecture and impact of modern LLMs</p>
+                    <textarea id="md-input" placeholder="Paste or type your markdown here..."
+                              class="flex-1 w-full p-4 text-sm font-mono bg-white border border-gray-200 rounded-xl outline-none resize-none focus:border-blue-300 transition" spellcheck="false"></textarea>
+                    <div id="md-preview" class="hidden flex-1 w-full p-4 text-sm bg-white border border-gray-200 rounded-xl overflow-y-auto prose prose-sm max-w-none"></div>
+                </div>
+                <!-- TOC -->
+                <div class="w-56 flex-shrink-0">
+                    <div class="text-xs text-slate-400 mb-1">Table of Contents</div>
+                    <div id="toc" class="bg-white border border-gray-200 rounded-xl p-3 overflow-y-auto text-sm" style="max-height: calc(100vh - 180px);">
+                        <p class="text-xs text-slate-300 italic">Headings will appear here...</p>
                     </div>
                 </div>
             </div>

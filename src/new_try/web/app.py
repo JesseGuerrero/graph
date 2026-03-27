@@ -130,6 +130,27 @@ def _scan_articles_dir(root_dir):
     return results
 
 
+@app.post("/api/articles/import")
+def import_article(req: dict):
+    """Save pasted markdown as a new article."""
+    title = (req.get("title") or "Untitled").strip()
+    markdown_text = (req.get("markdown") or "").strip()
+    if not markdown_text:
+        raise HTTPException(400, "Markdown text is required")
+
+    slug = re.sub(r'[^a-zA-Z0-9]+', '_', title).strip('_')
+    ts = str(int(time.time()))
+    dir_name = f"{slug}_{ts}"
+    dirpath = os.path.join(OUTPUT_DIR, dir_name)
+    os.makedirs(dirpath, exist_ok=True)
+
+    Path(os.path.join(dirpath, "storm_gen_article_polished.txt")).write_text(
+        markdown_text, encoding="utf-8"
+    )
+
+    return {"id": dir_name, "topic": title}
+
+
 @app.get("/api/articles")
 def list_articles():
     articles = _scan_articles_dir(OUTPUT_DIR)
