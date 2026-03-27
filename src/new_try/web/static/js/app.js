@@ -1,10 +1,10 @@
-// Sidebar toggle
+// Sidebar toggle (mobile hamburger)
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.toggle('-translate-x-full');
 }
 
-// Highlight active nav link
+// Highlight active nav link + add collapse button
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     document.querySelectorAll('.sidebar-link').forEach(link => {
@@ -12,7 +12,52 @@ document.addEventListener('DOMContentLoaded', () => {
             link.classList.add('active');
         }
     });
+
+    // Add collapse toggle to sidebar
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.style.position = 'relative';
+    sidebar.style.transition = 'width 0.2s ease, min-width 0.2s ease';
+
+    const btn = document.createElement('button');
+    btn.className = 'sidebar-collapse-btn';
+    btn.title = 'Toggle sidebar';
+    btn.textContent = '\u2039';
+    sidebar.appendChild(btn);
+
+    const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (collapsed) collapseSidebar(sidebar, btn);
+
+    btn.addEventListener('click', () => {
+        if (sidebar.dataset.collapsed === '1') {
+            expandSidebar(sidebar, btn);
+            localStorage.setItem('sidebarCollapsed', 'false');
+        } else {
+            collapseSidebar(sidebar, btn);
+            localStorage.setItem('sidebarCollapsed', 'true');
+        }
+    });
 });
+
+function collapseSidebar(sidebar, btn) {
+    sidebar.dataset.collapsed = '1';
+    sidebar.style.width = '0';
+    sidebar.style.minWidth = '0';
+    sidebar.style.overflow = 'hidden';
+    sidebar.style.borderRight = 'none';
+    sidebar.style.padding = '0';
+    btn.textContent = '\u203a';
+}
+
+function expandSidebar(sidebar, btn) {
+    sidebar.dataset.collapsed = '0';
+    sidebar.style.width = '';
+    sidebar.style.minWidth = '';
+    sidebar.style.overflow = '';
+    sidebar.style.borderRight = '';
+    sidebar.style.padding = '';
+    btn.textContent = '\u2039';
+}
 
 // Fetch wrapper
 async function api(url, options = {}) {

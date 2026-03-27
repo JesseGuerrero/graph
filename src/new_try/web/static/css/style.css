@@ -1,3 +1,28 @@
+/* Sidebar collapse toggle */
+.sidebar-collapse-btn {
+    position: absolute;
+    top: 12px;
+    right: -20px;
+    width: 20px;
+    height: 32px;
+    border-radius: 0 4px 4px 0;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-left: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    z-index: 40;
+    transition: all 0.15s;
+}
+.sidebar-collapse-btn:hover {
+    background: #334155;
+    color: #e2e8f0;
+}
+
 /* Sidebar */
 .sidebar-link.active {
     background-color: rgba(255, 255, 255, 0.1);
