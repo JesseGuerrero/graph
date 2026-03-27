@@ -344,6 +344,21 @@ def build_kg(article_id: str):
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
+@app.put("/api/articles/{article_id}")
+def update_article(article_id: str, req: dict):
+    """Update an existing article's markdown text."""
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+    markdown_text = (req.get("markdown") or "").strip()
+    if not markdown_text:
+        raise HTTPException(400, "Markdown text is required")
+    Path(os.path.join(dirpath, "storm_gen_article_polished.txt")).write_text(
+        markdown_text, encoding="utf-8"
+    )
+    return {"ok": True}
+
+
 @app.delete("/api/articles/{article_id}")
 def delete_article(article_id: str):
     dirpath = _find_article_dir(article_id)

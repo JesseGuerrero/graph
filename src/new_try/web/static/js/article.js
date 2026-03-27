@@ -36,6 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Edit button
+    const editBtn = document.getElementById('btn-edit');
+    if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = articleId || params.get('run_id');
+            if (id) window.location.href = `/static/index.html?edit=${id}`;
+        });
+    }
+
     // Knowledge Graph button
     const kgBtn = document.getElementById('btn-knowledge-graph');
     if (kgBtn) {

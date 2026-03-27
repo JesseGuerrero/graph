@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const mdInput = document.getElementById('md-input');
     const titleInput = document.getElementById('title-input');
     const toc = document.getElementById('toc');
@@ -6,6 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById('toggle-preview');
     const preview = document.getElementById('md-preview');
     let showingPreview = false;
+
+    const editId = new URLSearchParams(window.location.search).get('edit');
+
+    // If editing, load existing article
+    if (editId) {
+        try {
+            const data = await api(`/api/articles/${encodeURIComponent(editId)}`);
+            titleInput.value = data.topic || '';
+            mdInput.value = data.article_text || '';
+            updateToc();
+        } catch (e) {
+            alert('Failed to load article: ' + e.message);
+        }
+    }
 
     // Dynamic TOC from headings
     mdInput.addEventListener('input', updateToc);
@@ -21,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toc.innerHTML = '<p class="text-xs text-slate-300 italic">Headings will appear here...</p>';
             return;
         }
-        // Auto-detect title from first h1
+        // Auto-detect title from first h1 (only if title is empty)
         if (!titleInput.value && headings[0].level === 1) {
             titleInput.value = headings[0].text;
         }
@@ -48,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Simple markdown to HTML renderer
     function renderMarkdown(md) {
         let html = md
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -77,11 +90,21 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving...';
         try {
-            const data = await api('/api/articles/import', {
-                method: 'POST',
-                body: JSON.stringify({ title, markdown }),
-            });
-            window.location.href = `/static/article.html?id=${data.id}`;
+            if (editId) {
+                // Update existing article
+                await api(`/api/articles/${encodeURIComponent(editId)}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ markdown }),
+                });
+                window.location.href = `/static/article.html?id=${editId}`;
+            } else {
+                // Create new article
+                const data = await api('/api/articles/import', {
+                    method: 'POST',
+                    body: JSON.stringify({ title, markdown }),
+                });
+                window.location.href = `/static/article.html?id=${data.id}`;
+            }
         } catch (err) {
             alert('Failed to save: ' + err.message);
             saveBtn.disabled = false;
