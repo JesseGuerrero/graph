@@ -131,6 +131,68 @@ def _scan_articles_dir(root_dir):
     return results
 
 
+@app.post("/api/deep-research")
+def start_deep_research(req: dict):
+    """Launch claude.ai deep research in a visible browser window."""
+    topic = (req.get("topic") or "").strip()
+    if not topic:
+        raise HTTPException(400, "Topic is required")
+
+    run_id = str(uuid.uuid4())[:8]
+    q = queue.Queue()
+    with runs_lock:
+        runs[run_id] = {
+            "topic": topic,
+            "status": "running",
+            "created_at": time.time(),
+            "queue": q,
+            "article_dir": None,
+        }
+
+    def _run():
+        import asyncio
+        from claude_research import run_claude_research
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            def on_status(msg):
+                q.put({"type": "status", "data": {"message": msg}})
+
+            result = loop.run_until_complete(
+                run_claude_research(topic, on_status=on_status)
+            )
+            md = result["markdown"]
+
+            # Save as article
+            slug = re.sub(r'[^a-zA-Z0-9]+', '_', topic).strip('_')
+            ts = str(int(time.time()))
+            dir_name = f"{slug}_{ts}"
+            dirpath = os.path.join(OUTPUT_DIR, dir_name)
+            os.makedirs(dirpath, exist_ok=True)
+            Path(os.path.join(dirpath, "storm_gen_article_polished.txt")).write_text(
+                md, encoding="utf-8"
+            )
+
+            q.put({
+                "type": "done",
+                "data": {"article_dir": dir_name, "article_id": dir_name, "chars": len(md)},
+            })
+            with runs_lock:
+                runs[run_id]["status"] = "done"
+                runs[run_id]["article_dir"] = dir_name
+        except Exception as e:
+            q.put({"type": "error", "data": {"message": str(e)}})
+            with runs_lock:
+                runs[run_id]["status"] = "error"
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return {"run_id": run_id, "topic": topic}
+
+
 @app.post("/api/articles/import")
 def import_article(req: dict):
     """Save pasted markdown as a new article."""

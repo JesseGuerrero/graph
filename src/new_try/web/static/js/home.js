@@ -112,3 +112,68 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
+
+// Deep Research with claude.ai
+async function startDeepResearch() {
+    const title = document.getElementById('title-input').value.trim();
+    if (!title) { alert('Enter a topic/title first.'); return; }
+
+    const btn = document.getElementById('deep-research-btn');
+    const statusEl = document.getElementById('deep-research-status');
+    const msgEl = document.getElementById('deep-research-msg');
+
+    btn.disabled = true;
+    btn.textContent = 'Researching...';
+    statusEl.classList.remove('hidden');
+    msgEl.textContent = 'Starting deep research with Claude...';
+
+    try {
+        const res = await api('/api/deep-research', {
+            method: 'POST',
+            body: JSON.stringify({ topic: title }),
+        });
+
+        // Stream status events
+        const evtSource = new EventSource(`/api/run/${res.run_id}/events`);
+
+        evtSource.onmessage = (e) => {
+            const event = JSON.parse(e.data);
+
+            if (event.type === 'status') {
+                msgEl.textContent = event.data.message;
+            }
+
+            if (event.type === 'done') {
+                evtSource.close();
+                msgEl.textContent = `Done! (${event.data.chars} chars)`;
+                statusEl.classList.remove('bg-purple-50', 'border-purple-200', 'text-purple-800');
+                statusEl.classList.add('bg-green-50', 'border-green-200', 'text-green-800');
+
+                // Redirect to the article
+                setTimeout(() => {
+                    window.location.href = `/static/article.html?id=${event.data.article_id}`;
+                }, 1500);
+            }
+
+            if (event.type === 'error') {
+                evtSource.close();
+                msgEl.textContent = `Error: ${event.data.message}`;
+                statusEl.classList.remove('bg-purple-50', 'border-purple-200', 'text-purple-800');
+                statusEl.classList.add('bg-red-50', 'border-red-200', 'text-red-800');
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Deep Research';
+            }
+        };
+
+        evtSource.onerror = () => {
+            evtSource.close();
+            msgEl.textContent = 'Connection lost';
+            btn.disabled = false;
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Deep Research';
+        };
+    } catch (err) {
+        msgEl.textContent = `Failed: ${err.message}`;
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Deep Research';
+    }
+}
