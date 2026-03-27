@@ -13,20 +13,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add collapse toggle to sidebar
+    // Add collapse toggle to sidebar — button lives on document.body so
+    // it remains visible even when sidebar is collapsed to 0 width
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
-    sidebar.style.position = 'relative';
     sidebar.style.transition = 'width 0.2s ease, min-width 0.2s ease';
 
     const btn = document.createElement('button');
     btn.className = 'sidebar-collapse-btn';
     btn.title = 'Toggle sidebar';
-    btn.textContent = '\u2039';
-    sidebar.appendChild(btn);
+    document.body.appendChild(btn);
+
+    function positionBtn() {
+        btn.style.left = sidebar.getBoundingClientRect().right + 'px';
+    }
 
     const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
     if (collapsed) collapseSidebar(sidebar, btn);
+    else positionBtn();
 
     btn.addEventListener('click', () => {
         if (sidebar.dataset.collapsed === '1') {
@@ -37,27 +41,30 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('sidebarCollapsed', 'true');
         }
     });
+
+    function collapseSidebar(sb, b) {
+        sb.dataset.collapsed = '1';
+        sb.style.width = '0';
+        sb.style.minWidth = '0';
+        sb.style.overflow = 'hidden';
+        sb.style.borderRight = 'none';
+        sb.style.padding = '0';
+        b.textContent = '\u203a';
+        b.style.left = '0px';
+    }
+
+    function expandSidebar(sb, b) {
+        sb.dataset.collapsed = '0';
+        sb.style.width = '';
+        sb.style.minWidth = '';
+        sb.style.overflow = '';
+        sb.style.borderRight = '';
+        sb.style.padding = '';
+        b.textContent = '\u2039';
+        // Wait for transition to finish to read final width
+        setTimeout(() => { b.style.left = sb.getBoundingClientRect().right + 'px'; }, 220);
+    }
 });
-
-function collapseSidebar(sidebar, btn) {
-    sidebar.dataset.collapsed = '1';
-    sidebar.style.width = '0';
-    sidebar.style.minWidth = '0';
-    sidebar.style.overflow = 'hidden';
-    sidebar.style.borderRight = 'none';
-    sidebar.style.padding = '0';
-    btn.textContent = '\u203a';
-}
-
-function expandSidebar(sidebar, btn) {
-    sidebar.dataset.collapsed = '0';
-    sidebar.style.width = '';
-    sidebar.style.minWidth = '';
-    sidebar.style.overflow = '';
-    sidebar.style.borderRight = '';
-    sidebar.style.padding = '';
-    btn.textContent = '\u2039';
-}
 
 // Fetch wrapper
 async function api(url, options = {}) {
