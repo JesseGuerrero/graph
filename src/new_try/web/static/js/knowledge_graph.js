@@ -343,10 +343,6 @@ async function startVerification() {
           }
           showToast(`Verifying: ${truncate(event.text || event.id, 60)}`);
 
-          // Activate scan overlay on markdown panel
-          const overlay = document.getElementById('verifyOverlay');
-          if (overlay) overlay.classList.add('active');
-
           // Highlight in markdown and fly particle from markdown to tree node
           const hl = highlightClaimInMarkdown(event.text || '', event.id);
           if (hl && nodeEl) {
@@ -363,8 +359,6 @@ async function startVerification() {
 
         if (event.type === 'claim_result') {
           hideToast();
-          const overlay = document.getElementById('verifyOverlay');
-          if (overlay) overlay.classList.remove('active');
           const nodeEl = document.getElementById(`node-${event.id}`);
           if (!nodeEl) continue;
 
@@ -527,6 +521,8 @@ function propagateVerdict(nodeEl) {
 }
 
 function killVerification() {
+  // Tell backend to stop the browser and verification loop
+  fetch(`/api/articles/${articleId}/kg/verify/kill`, { method: 'POST' });
   if (verifyAbort) verifyAbort.abort();
 }
 

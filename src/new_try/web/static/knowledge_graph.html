@@ -249,7 +249,6 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 .md-panel {
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
   margin-bottom: 16px; overflow: hidden; display: flex; flex-direction: column; max-height: 30vh;
-  position: relative;
 }
 .md-panel-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -295,28 +294,6 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
   opacity: 1;
 }
 
-/* Verify overlay on markdown panel */
-.verify-overlay {
-  position: absolute; inset: 0; pointer-events: none; z-index: 20;
-  background: transparent; transition: background 0.3s;
-}
-.verify-overlay.active {
-  background: rgba(93,173,226,0.06);
-}
-.verify-overlay .scan-line {
-  position: absolute; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  box-shadow: 0 0 12px rgba(93,173,226,0.6);
-  opacity: 0; transition: opacity 0.3s;
-}
-.verify-overlay.active .scan-line {
-  opacity: 1;
-  animation: scanDown 1.2s ease-in-out infinite;
-}
-@keyframes scanDown {
-  0% { top: 0; }
-  100% { top: 100%; }
-}
 </style>
 </head>
 <body>
@@ -352,7 +329,6 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
     <div class="md-panel" id="md-panel" style="display:none">
       <div class="md-panel-header"><h2>Article</h2></div>
       <div class="md-panel-body" id="md-body"></div>
-      <div class="verify-overlay" id="verifyOverlay"><div class="scan-line"></div></div>
     </div>
 
     <!-- Tree section (shown after build) -->

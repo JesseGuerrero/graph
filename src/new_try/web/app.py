@@ -22,6 +22,7 @@ from storm_runner import run_pipeline, OUTPUT_DIR
 load_dotenv()
 
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), ".user_settings.json")
+_active_verifications: dict[str, threading.Event] = {}
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -525,6 +526,8 @@ def verify_kg(article_id: str, use_cache: bool = True):
         raise HTTPException(400, "LLM API key and URL must be configured")
 
     q = queue.Queue()
+    kill_event = threading.Event()
+    _active_verifications[article_id] = kill_event
     PROFILE_DIR = Path("C:/Users/jesse/Desktop/demo/browser_profile")
     PROFILE_DIR.mkdir(exist_ok=True)
 
@@ -546,6 +549,10 @@ def verify_kg(article_id: str, use_cache: bool = True):
 
             try:
                 for i, claim in enumerate(claims):
+                    if kill_event.is_set():
+                        q.put({"type": "killed"})
+                        break
+
                     q.put({
                         "type": "claim_start",
                         "claim_idx": i,
@@ -659,16 +666,28 @@ def verify_kg(article_id: str, use_cache: bool = True):
     t.start()
 
     def stream():
-        while True:
-            try:
-                event = q.get(timeout=120)
-                yield f"data: {json.dumps(event)}\n\n"
-                if event["type"] in ("done", "error"):
-                    break
-            except queue.Empty:
-                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+        try:
+            while True:
+                try:
+                    event = q.get(timeout=120)
+                    yield f"data: {json.dumps(event)}\n\n"
+                    if event["type"] in ("done", "error", "killed"):
+                        break
+                except queue.Empty:
+                    yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+        finally:
+            _active_verifications.pop(article_id, None)
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.post("/api/articles/{article_id}/kg/verify/kill")
+def kill_verification(article_id: str):
+    ev = _active_verifications.pop(article_id, None)
+    if ev:
+        ev.set()
+        return {"status": "killed"}
+    return {"status": "not_running"}
 
 
 async def _start_browser():
