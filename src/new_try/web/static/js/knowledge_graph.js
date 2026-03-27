@@ -80,7 +80,8 @@ function startBuild() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      function processBuffer() {
+      function processBuffer(flush) {
+        if (flush) buffer += '\n';
         const lines = buffer.split('\n');
         buffer = lines.pop();
         for (const line of lines) {
@@ -109,7 +110,7 @@ function startBuild() {
       function read() {
         reader.read().then(({ done, value }) => {
           if (value) buffer += decoder.decode(value, { stream: true });
-          processBuffer();
+          processBuffer(done);
           if (!done) read();
         });
       }
