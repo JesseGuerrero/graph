@@ -221,17 +221,7 @@ function buildNodeEl(data) {
   if (data.critical) box.innerHTML += '<span class="badge critical">CRITICAL</span>';
   if (data.strategy) box.innerHTML += `<span class="badge strategy">${data.strategy}</span>`;
 
-  if (data.citedUrls && data.citedUrls.length) {
-    const urls = el('div', 'evidence-links');
-    urls.style.marginTop = '4px';
-    data.citedUrls.forEach(u => {
-      const a = document.createElement('a');
-      try { a.textContent = new URL(u).hostname.replace('www.', ''); } catch { a.textContent = u.substring(0, 30); }
-      a.href = u; a.target = '_blank';
-      urls.appendChild(a);
-    });
-    box.appendChild(urls);
-  }
+  // Cited URLs are shown only during verification results, not at build time
 
   wrapper.appendChild(box);
 
