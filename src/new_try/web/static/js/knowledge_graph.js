@@ -185,7 +185,7 @@ function mapKGToTree(node, depth = 0) {
     strategy: isRoot ? 'SEQ' : 'PAR',
     critical: node.critical || false,
     collapsible: hasChildren && !isRoot,
-    collapsed: hasChildren && depth >= 2,
+    collapsed: hasChildren && depth >= 1,
     citedUrls: node.cited_urls || [],
     searchQuery: node.search_query || '',
     claimText: node.claim_text || '',
