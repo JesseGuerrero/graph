@@ -221,7 +221,8 @@ function buildNodeEl(data) {
   if (data.critical) box.innerHTML += '<span class="badge critical">CRITICAL</span>';
   if (data.strategy) box.innerHTML += `<span class="badge strategy">${data.strategy}</span>`;
 
-  // Cited URLs are shown only during verification results, not at build time
+  // Store full data for hover popup
+  box._nodeData = data;
 
   wrapper.appendChild(box);
 
@@ -680,6 +681,101 @@ document.addEventListener('mouseout', e => {
     box.style.boxShadow = '';
   });
 });
+
+// ── Node hover popup ──
+
+let popupEl = null;
+let popupTimer = null;
+
+document.addEventListener('mouseover', e => {
+  const box = e.target.closest('.node-box');
+  if (!box || !box._nodeData) return;
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(() => showNodePopup(box), 300);
+});
+
+document.addEventListener('mouseout', e => {
+  const box = e.target.closest('.node-box');
+  if (!box) return;
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(hideNodePopup, 150);
+});
+
+function showNodePopup(box) {
+  hideNodePopup();
+  const d = box._nodeData;
+  const rect = box.getBoundingClientRect();
+
+  popupEl = document.createElement('div');
+  popupEl.className = 'node-popup';
+
+  let html = `<div class="popup-title">${esc(d.label)}</div>`;
+  html += `<span class="popup-type ${d.type}">${d.type}</span>`;
+  if (d.critical) html += `<span class="popup-crit">CRITICAL</span>`;
+
+  // Claim text / description
+  if (d.claimText) {
+    html += `<div class="popup-section"><div class="popup-label">Claim</div><div class="popup-text">${esc(d.claimText)}</div></div>`;
+  } else if (d.desc) {
+    html += `<div class="popup-section"><div class="popup-label">Description</div><div class="popup-text">${esc(d.desc)}</div></div>`;
+  }
+
+  // Search query
+  if (d.searchQuery) {
+    html += `<div class="popup-section"><div class="popup-label">Search Query</div><div class="popup-text">${esc(d.searchQuery)}</div></div>`;
+  }
+
+  // Cited URLs
+  if (d.citedUrls && d.citedUrls.length) {
+    html += `<div class="popup-section"><div class="popup-label">Cited Sources (${d.citedUrls.length})</div><div class="popup-urls">`;
+    d.citedUrls.forEach(u => { html += `<div class="popup-url">${esc(u)}</div>`; });
+    html += `</div></div>`;
+  }
+
+  // Verdict (if verified)
+  if (box.classList.contains('passed') || box.classList.contains('failed')) {
+    const v = box.classList.contains('passed') ? 'passed' : 'failed';
+    const score = box.dataset.score;
+    html += `<div class="popup-section"><div class="popup-label">Verdict</div>`;
+    html += `<span class="popup-verdict ${v}">${v === 'passed' ? '\u2713 Passed' : '\u2717 Failed'}</span>`;
+    if (score && score !== '1.00' && score !== '0.00') html += ` <span style="color:var(--text-muted);font-size:11px">(${(parseFloat(score)*100).toFixed(0)}%)</span>`;
+    html += `</div>`;
+  }
+
+  // Evidence URLs added during verification
+  const evLinks = box.querySelectorAll('.evidence-links a');
+  if (evLinks.length) {
+    html += `<div class="popup-section"><div class="popup-label">Evidence</div><div class="popup-urls">`;
+    evLinks.forEach(a => { html += `<div class="popup-url">${esc(a.href)}</div>`; });
+    html += `</div></div>`;
+  }
+
+  // Reasoning from verdict badge title
+  const badge = box.querySelector('.verdict-badge');
+  if (badge && badge.title) {
+    const lines = badge.title.split('\n').filter(l => l.trim());
+    if (lines.length > 1) {
+      html += `<div class="popup-section"><div class="popup-label">Reasoning</div><div class="popup-text">${esc(lines.slice(1).join(' '))}</div></div>`;
+    }
+  }
+
+  popupEl.innerHTML = html;
+  document.body.appendChild(popupEl);
+
+  // Position: prefer right of node, fall back to left
+  const pw = 340, ph = popupEl.offsetHeight;
+  let left = rect.right + 12;
+  let top = rect.top + (rect.height / 2) - (ph / 2);
+  if (left + pw > window.innerWidth) left = rect.left - pw - 12;
+  if (top < 8) top = 8;
+  if (top + ph > window.innerHeight - 8) top = window.innerHeight - 8 - ph;
+  popupEl.style.left = left + 'px';
+  popupEl.style.top = top + 'px';
+}
+
+function hideNodePopup() {
+  if (popupEl) { popupEl.remove(); popupEl = null; }
+}
 
 // ── Helpers ──
 
