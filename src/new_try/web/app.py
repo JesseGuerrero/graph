@@ -370,29 +370,14 @@ def delete_article(article_id: str):
 
 # ── Claim Verification ──────────────────────────────────────────────
 
-VERIFY_SYSTEM = "You are a precise fact-checker. Output ONLY valid JSON. No markdown, no explanations."
+VERIFY_SYSTEM = "Fact-checker. JSON only."
 
-VERIFY_CLAIM_PROMPT = """Verify whether this claim from a research document is factually correct.
+VERIFY_CLAIM_PROMPT = """Claim: "{claim_text}"
+Context: "{search_query}"
 
-Claim: "{claim_text}"
-Search context: "{search_query}"
-Cited URLs: {cited_urls}
-
-Assess the claim based on your knowledge. Be strict — only mark as passed if you are confident it is correct.
-
-Output JSON:
-{{
-  "verdict": "passed" or "failed",
-  "reasoning": "1-2 sentence explanation",
-  "errors": []
-}}
-
-Error codes to include in "errors" array if applicable:
-- "inf" if you cannot find information to verify this claim
-- "cri" if the claim contradicts known facts
-- "mat" if no source URLs are cited
-- "syn" if the claim misrepresents its source
-"""
+Verdict: passed (confident correct) or failed. JSON:
+{{"verdict":"passed|failed","reasoning":"why","errors":[]}}
+errors: "inf"=no info, "cri"=contradicts facts, "syn"=misrepresents source"""
 
 
 def _collect_claims(node, path=""):

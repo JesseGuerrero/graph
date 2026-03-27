@@ -80,35 +80,37 @@ function startBuild() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      function processBuffer() {
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === 'node') {
+              const d = event.data;
+              const indent = '\u00a0\u00a0'.repeat(d.depth);
+              const icons = { root: '\u25c6', category: '\u25c7', entity: '\u25cf', claim: '\u25ce' };
+              nodesDiv.innerHTML += `<div>${indent}${icons[d.node_type] || '\u00b7'} ${esc(d.label)}</div>`;
+              nodesDiv.scrollTop = nodesDiv.scrollHeight;
+              status.textContent = `Building... (${nodesDiv.children.length} nodes)`;
+            } else if (event.type === 'done') {
+              status.textContent = 'Done!';
+              kgTreeData = event.data;
+              setTimeout(() => showTree(kgTreeData), 500);
+            } else if (event.type === 'error') {
+              status.textContent = 'Error: ' + (event.data.message || 'Unknown');
+              btn.disabled = false;
+              btn.textContent = 'Retry';
+            }
+          } catch (e) { console.error('SSE parse error', e); }
+        }
+      }
       function read() {
         reader.read().then(({ done, value }) => {
-          if (done) return;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop();
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-              const event = JSON.parse(line.slice(6));
-              if (event.type === 'node') {
-                const d = event.data;
-                const indent = '\u00a0\u00a0'.repeat(d.depth);
-                const icons = { root: '\u25c6', category: '\u25c7', entity: '\u25cf', claim: '\u25ce' };
-                nodesDiv.innerHTML += `<div>${indent}${icons[d.node_type] || '\u00b7'} ${esc(d.label)}</div>`;
-                nodesDiv.scrollTop = nodesDiv.scrollHeight;
-                status.textContent = `Building... (${nodesDiv.children.length} nodes)`;
-              } else if (event.type === 'done') {
-                status.textContent = 'Done!';
-                kgTreeData = event.data;
-                setTimeout(() => showTree(kgTreeData), 500);
-              } else if (event.type === 'error') {
-                status.textContent = 'Error: ' + (event.data.message || 'Unknown');
-                btn.disabled = false;
-                btn.textContent = 'Retry';
-              }
-            } catch (e) {}
-          }
-          read();
+          if (value) buffer += decoder.decode(value, { stream: true });
+          processBuffer();
+          if (!done) read();
         });
       }
       read();
