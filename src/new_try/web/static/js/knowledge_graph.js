@@ -266,6 +266,27 @@ function drawHLines() {
   });
 }
 
+// ── Tree path helpers ──
+
+function collapseAllToDepth1() {
+  document.querySelectorAll('#tree .collapsible').forEach(n => n.classList.add('collapsed'));
+}
+
+function expandPathToNode(nodeBox) {
+  // Walk up from the node-box to the tree root, uncollapsing each ancestor .collapsible
+  let el = nodeBox.closest('.node');
+  while (el) {
+    if (el.classList.contains('collapsible')) {
+      el.classList.remove('collapsed');
+    }
+    const parentCol = el.parentElement; // .child-col
+    if (!parentCol) break;
+    const children = parentCol.parentElement; // .children
+    if (!children) break;
+    el = children.closest('.node');
+  }
+}
+
 // ── Verification ──
 
 async function startVerification() {
@@ -276,8 +297,8 @@ async function startVerification() {
   document.getElementById('resetBtn').disabled = true;
   document.getElementById('processStatus').innerHTML = '<span class="spinner"></span>Verifying claims...';
 
-  // Expand all collapsed sections for visibility
-  document.querySelectorAll('#tree .collapsible.collapsed').forEach(n => n.classList.remove('collapsed'));
+  // Collapse everything to depth 1
+  collapseAllToDepth1();
   setTimeout(drawHLines, 100);
 
   try {
@@ -303,8 +324,12 @@ async function startVerification() {
         try { event = JSON.parse(line.slice(6)); } catch { continue; }
 
         if (event.type === 'claim_start') {
+          // Collapse tree to depth 1, then expand only the path to this leaf
+          collapseAllToDepth1();
           const nodeEl = document.getElementById(`node-${event.id}`);
           if (nodeEl) {
+            expandPathToNode(nodeEl);
+            setTimeout(drawHLines, 50);
             nodeEl.classList.add('pending');
             nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
