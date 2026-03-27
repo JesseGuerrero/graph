@@ -22,6 +22,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('back-to-article').href = `/static/article.html?id=${articleId}`;
   loadSidebarHistory();
 
+  // Sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const sidebarBtn = document.getElementById('sidebarToggle');
+  if (localStorage.getItem('sidebarCollapsed') === 'true') {
+    sidebar.classList.add('collapsed');
+    sidebarBtn.textContent = '\u203a';
+  }
+  sidebarBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+    const collapsed = sidebar.classList.contains('collapsed');
+    sidebarBtn.textContent = collapsed ? '\u203a' : '\u2039';
+    localStorage.setItem('sidebarCollapsed', collapsed);
+  });
+
   // Load article markdown
   try {
     const artRes = await fetch(`/api/articles/${articleId}`);
@@ -688,6 +702,7 @@ let popupEl = null;
 let popupTimer = null;
 
 document.addEventListener('mouseover', e => {
+  if (e.target.closest('.node-popup')) { clearTimeout(popupTimer); return; }
   const box = e.target.closest('.node-box');
   if (!box || !box._nodeData) return;
   clearTimeout(popupTimer);
@@ -695,10 +710,11 @@ document.addEventListener('mouseover', e => {
 });
 
 document.addEventListener('mouseout', e => {
+  if (e.target.closest('.node-popup')) { clearTimeout(popupTimer); popupTimer = setTimeout(hideNodePopup, 300); return; }
   const box = e.target.closest('.node-box');
   if (!box) return;
   clearTimeout(popupTimer);
-  popupTimer = setTimeout(hideNodePopup, 150);
+  popupTimer = setTimeout(hideNodePopup, 300);
 });
 
 function showNodePopup(box) {
@@ -728,7 +744,7 @@ function showNodePopup(box) {
   // Cited URLs
   if (d.citedUrls && d.citedUrls.length) {
     html += `<div class="popup-section"><div class="popup-label">Cited Sources (${d.citedUrls.length})</div><div class="popup-urls">`;
-    d.citedUrls.forEach(u => { html += `<div class="popup-url">${esc(u)}</div>`; });
+    d.citedUrls.forEach(u => { html += `<a class="popup-url" href="${esc(u)}" target="_blank">${esc(u)}</a>`; });
     html += `</div></div>`;
   }
 
@@ -746,7 +762,7 @@ function showNodePopup(box) {
   const evLinks = box.querySelectorAll('.evidence-links a');
   if (evLinks.length) {
     html += `<div class="popup-section"><div class="popup-label">Evidence</div><div class="popup-urls">`;
-    evLinks.forEach(a => { html += `<div class="popup-url">${esc(a.href)}</div>`; });
+    evLinks.forEach(a => { html += `<a class="popup-url" href="${esc(a.href)}" target="_blank">${esc(a.href)}</a>`; });
     html += `</div></div>`;
   }
 
