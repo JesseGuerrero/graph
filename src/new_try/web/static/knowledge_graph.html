@@ -29,24 +29,23 @@
 body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.6; min-height: 100vh; display: flex; }
 
 /* Sidebar */
+.sidebar-wrapper { display: flex; flex-shrink: 0; }
 .sidebar {
   width: 220px; background: #12122a; min-height: 100vh; display: flex; flex-direction: column;
   border-right: 1px solid var(--border); flex-shrink: 0;
-  transition: width 0.2s ease, padding 0.2s ease;
-  overflow: hidden; position: relative;
+  transition: width 0.2s ease;
+  overflow: hidden;
 }
 .sidebar.collapsed { width: 0; border-right: none; }
-.sidebar.collapsed > *:not(.sidebar-toggle) { display: none; }
 .sidebar-toggle {
-  position: absolute; top: 12px; right: -28px; z-index: 100;
-  width: 24px; height: 24px; border-radius: 4px;
-  background: var(--surface-2); border: 1px solid var(--border);
+  align-self: flex-start; margin-top: 12px;
+  width: 20px; height: 32px; border-radius: 0 4px 4px 0;
+  background: #1a1a2e; border: 1px solid var(--border); border-left: none;
   color: var(--text-muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; transition: all 0.15s;
+  font-size: 14px; transition: all 0.15s; flex-shrink: 0;
 }
 .sidebar-toggle:hover { background: var(--surface-3); color: var(--text); }
-.sidebar.collapsed .sidebar-toggle { right: -28px; }
 .sidebar-brand { padding: 16px; }
 .sidebar-brand a {
   display: block; background: var(--accent); color: var(--bg); text-align: center;
@@ -340,20 +339,22 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 <body>
 
 <!-- Sidebar -->
-<aside class="sidebar" id="sidebar">
+<div class="sidebar-wrapper">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <a href="/static/index.html">+ Deep Search</a>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/static/library.html" class="sidebar-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        My Library
+      </a>
+      <div class="sidebar-history" id="sidebar-history"></div>
+    </nav>
+    <div class="sidebar-footer">STORM Wiki</div>
+  </aside>
   <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">&lsaquo;</button>
-  <div class="sidebar-brand">
-    <a href="/static/index.html">+ Deep Search</a>
-  </div>
-  <nav class="sidebar-nav">
-    <a href="/static/library.html" class="sidebar-link">
-      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-      My Library
-    </a>
-    <div class="sidebar-history" id="sidebar-history"></div>
-  </nav>
-  <div class="sidebar-footer">STORM Wiki</div>
-</aside>
+</div>
 
 <!-- Main -->
 <div class="main">
