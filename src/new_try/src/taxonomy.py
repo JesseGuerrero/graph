@@ -253,7 +253,13 @@ class KnowledgeGraphTaxonomy:
         return max((n.depth for n in self.nodes.values()), default=0)
 
     def aggregate_scores(self):
-        """Bottom-up: leaf verdicts → parent scores."""
+        """Bottom-up: leaf verdicts → parent scores.
+
+        Uses Mind2Web 2 gate-then-average formula (§3.3):
+          s(v) = 0                          if any critical child fails
+          s(v) = avg(non-critical scores)   if all critical pass & non-critical exist
+          s(v) = 1                          if ALL children are critical and all pass
+        """
         for depth in range(self.max_depth, -1, -1):
             for node in self.get_nodes_at_depth(depth):
                 if node.is_leaf:
@@ -277,8 +283,27 @@ class KnowledgeGraphTaxonomy:
                         if c.verdict == Verdict.FAILED
                         or (c.aggregated_score is not None and c.aggregated_score == 0.0)
                     )
-                    if scored:
-                        node.aggregated_score = sum(c.aggregated_score for c in scored) / len(scored)
+
+                    if not scored:
+                        node.aggregated_score = None
+                        node.verdict = Verdict.UNVERIFIED
+                        continue
+
+                    # Partition into critical (K) and non-critical (N)
+                    critical = [c for c in scored if c.critical]
+                    non_critical = [c for c in scored if not c.critical]
+
+                    # Gate: any critical child fails → parent = 0
+                    any_critical_failed = any(
+                        c.aggregated_score is not None and c.aggregated_score < 1.0
+                        for c in critical
+                    )
+                    if any_critical_failed:
+                        node.aggregated_score = 0.0
+                        node.verdict = Verdict.FAILED
+                    elif non_critical:
+                        # All critical pass → score = average of non-critical
+                        node.aggregated_score = sum(c.aggregated_score for c in non_critical) / len(non_critical)
                         if node.aggregated_score == 1.0:
                             node.verdict = Verdict.PASSED
                         elif node.aggregated_score == 0.0:
@@ -286,8 +311,10 @@ class KnowledgeGraphTaxonomy:
                         else:
                             node.verdict = Verdict.PARTIAL
                     else:
-                        node.aggregated_score = None
-                        node.verdict = Verdict.UNVERIFIED
+                        # All children are critical — all must pass
+                        all_pass = all(c.aggregated_score == 1.0 for c in critical)
+                        node.aggregated_score = 1.0 if all_pass else 0.0
+                        node.verdict = Verdict.PASSED if all_pass else Verdict.FAILED
 
     def to_dict(self) -> dict:
         self.aggregate_scores()
