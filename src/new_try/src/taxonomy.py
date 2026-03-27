@@ -415,13 +415,14 @@ SYSTEM_PROMPT = (
     "fences, no commentary."
 )
 
-PHASE1_PROMPT = """Analyze this research document and discover the top-level knowledge categories that organize ALL the factual information in it.
+PHASE1_PROMPT = """Analyze this research document and discover the top-level knowledge categories that organize the CORE factual information in it.
 
 Rules:
-- Output 3-8 categories that COVER every major knowledge domain in the document
+- Output 3-5 categories covering the document's CENTRAL themes — skip tangential or background information
 - Categories are ABSTRACT groupings — not specific entities or claims
 - Good examples: "Countries Involved", "Key Technologies", "Timeline of Events", "Economic Indicators", "Legal Framework", "Key People and Organizations", "Methodologies Used", "Data Sources", "Risks and Challenges"
 - Each category should be distinct — no overlapping scope
+- ONLY include categories that are essential to the document's main argument or thesis
 - estimated_depth: how many more levels you think this can decompose (1-9)
 
 Output JSON array:
@@ -448,12 +449,19 @@ Relevant text from the document:
 {section_text}
 
 Decision rules:
-1. If this node has meaningful, distinct subcategories → output "decompose" with children
-2. If this node is specific enough to state verifiable facts → output "leaf" with claims
-3. At depth {max_depth}, you MUST output claims
-4. Subcategories must not overlap
-5. Claims must be: factual, specific, checkable by visiting a webpage
-6. Aim for 2-6 children per decomposition, 1-5 claims per leaf
+1. If this node is TANGENTIAL or only loosely related to the document's central thesis → output "skip" (no children, no claims)
+2. If this node has meaningful, distinct subcategories that are CORE to the document → output "decompose" with children
+3. If this node is specific enough to state verifiable facts → output "leaf" with claims
+4. At depth {max_depth}, you MUST output claims or skip
+5. Subcategories must not overlap
+6. Claims must be: factual, specific, checkable by visiting a webpage
+7. Aim for 2-4 children per decomposition, 1-3 claims per leaf
+8. Be SELECTIVE — only keep subcategories and claims that are central to the document's argument. Omit background context, tangential references, and minor details
+
+For skipping irrelevant nodes:
+{{
+  "action": "skip"
+}}
 
 For subcategories:
 {{
@@ -527,8 +535,8 @@ class KGTaxonomyBuilder:
         markdown:     the full research document text (any length)
         title:        document title (auto-detected from # heading if empty)
         max_depth:    maximum tree depth (1-10, default 10)
-        max_children: max subcategories per decomposition (default 8)
-        max_claims:   max claims per leaf parent (default 5)
+        max_children: max subcategories per decomposition (default 4)
+        max_claims:   max claims per leaf parent (default 3)
         on_node:      optional callback(KGNode) called when each node is created
         concurrency:  max parallel LLM calls per decomposition level (default 5)
     """
@@ -539,8 +547,8 @@ class KGTaxonomyBuilder:
         markdown: str,
         title: str = "",
         max_depth: int = 10,
-        max_children: int = 8,
-        max_claims: int = 5,
+        max_children: int = 4,
+        max_claims: int = 3,
         on_node: Optional[Callable[[KGNode], None]] = None,
         concurrency: int = 5,
     ):
@@ -625,6 +633,10 @@ class KGTaxonomyBuilder:
             return
 
         action = result.get("action", "leaf")
+
+        if action == "skip":
+            node.node_type = NodeType.ENTITY
+            return
 
         if action == "decompose" and result.get("children"):
             child_tasks = []
