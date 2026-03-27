@@ -368,4 +368,171 @@ def delete_article(article_id: str):
     return {"ok": True}
 
 
+# ── Claim Verification ──────────────────────────────────────────────
+
+VERIFY_SYSTEM = "You are a precise fact-checker. Output ONLY valid JSON. No markdown, no explanations."
+
+VERIFY_CLAIM_PROMPT = """Verify whether this claim from a research document is factually correct.
+
+Claim: "{claim_text}"
+Search context: "{search_query}"
+Cited URLs: {cited_urls}
+
+Assess the claim based on your knowledge. Be strict — only mark as passed if you are confident it is correct.
+
+Output JSON:
+{{
+  "verdict": "passed" or "failed",
+  "reasoning": "1-2 sentence explanation",
+  "errors": []
+}}
+
+Error codes to include in "errors" array if applicable:
+- "inf" if you cannot find information to verify this claim
+- "cri" if the claim contradicts known facts
+- "mat" if no source URLs are cited
+- "syn" if the claim misrepresents its source
+"""
+
+
+def _collect_claims(node, path=""):
+    """Walk KG tree and collect all leaf claim nodes."""
+    claims = []
+    node_path = f"{path} > {node.get('label', '')}" if path else node.get('label', '')
+    if node.get('type') == 'claim' or not node.get('children'):
+        claims.append({
+            "id": node.get("id", ""),
+            "label": node.get("label", ""),
+            "claim_text": node.get("claim_text", "") or node.get("label", ""),
+            "search_query": node.get("search_query", ""),
+            "cited_urls": node.get("cited_urls", []),
+            "critical": node.get("critical", False),
+            "path": node_path,
+        })
+    for child in node.get("children", []):
+        claims.extend(_collect_claims(child, node_path))
+    return claims
+
+
+@app.post("/api/articles/{article_id}/kg/verify")
+def verify_kg(article_id: str):
+    """Verify each claim leaf in the KG via LLM. Streams SSE events."""
+    import asyncio
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    from src.taxonomy import create_llm_fn_openai
+
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+
+    kg_path = os.path.join(dirpath, "kg_taxonomy.json")
+    if not os.path.exists(kg_path):
+        raise HTTPException(404, "No KG found — build it first")
+
+    tree = json.loads(Path(kg_path).read_text(encoding="utf-8"))
+    claims = _collect_claims(tree)
+
+    # Load LLM settings
+    settings = {}
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            settings = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    api_key = settings.get("cfg_llm_key") or os.getenv("LLM_API_KEY", "")
+    api_base = settings.get("cfg_llm_url") or os.getenv("LLM_API_BASE", "")
+    model = settings.get("cfg_llm_model") or os.getenv("LLM_MODEL", "claude-opus-4-6")
+
+    if not api_key or not api_base:
+        raise HTTPException(400, "LLM API key and URL must be configured")
+
+    q = queue.Queue()
+
+    def run_verify():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            llm = create_llm_fn_openai(base_url=api_base, api_key=api_key, model=model)
+            passed = 0
+            failed = 0
+            error_summary = {}
+
+            for i, claim in enumerate(claims):
+                q.put({
+                    "type": "claim_start",
+                    "claim_idx": i,
+                    "id": claim["id"],
+                    "text": claim["claim_text"],
+                })
+
+                # Verify via LLM
+                prompt = VERIFY_CLAIM_PROMPT.format(
+                    claim_text=claim["claim_text"],
+                    search_query=claim["search_query"],
+                    cited_urls=json.dumps(claim["cited_urls"][:3]) if claim["cited_urls"] else "[]",
+                )
+                try:
+                    raw = loop.run_until_complete(llm(VERIFY_SYSTEM, prompt))
+                    cleaned = re.sub(r"```json\s?|```", "", raw).strip()
+                    result = json.loads(cleaned)
+                except Exception as e:
+                    result = {"verdict": "failed", "reasoning": f"Verification error: {e}", "errors": ["inf"]}
+
+                verdict = result.get("verdict", "failed")
+                errors = result.get("errors", [])
+
+                # Add missing-attribution error if no cited URLs
+                if not claim["cited_urls"] and "mat" not in errors:
+                    errors.append("mat")
+
+                if verdict == "passed":
+                    passed += 1
+                else:
+                    failed += 1
+
+                for e in errors:
+                    error_summary[e] = error_summary.get(e, 0) + 1
+
+                q.put({
+                    "type": "claim_result",
+                    "claim_idx": i,
+                    "id": claim["id"],
+                    "verdict": verdict,
+                    "reasoning": result.get("reasoning", ""),
+                    "evidence_urls": claim["cited_urls"][:3],
+                    "errors": errors,
+                })
+
+            total = len(claims)
+            score = passed / total if total > 0 else 0
+            q.put({
+                "type": "done",
+                "score": score,
+                "total_claims": total,
+                "passed": passed,
+                "failed": failed,
+                "error_summary": error_summary,
+            })
+        except Exception as e:
+            q.put({"type": "error", "message": str(e)})
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=run_verify, daemon=True)
+    t.start()
+
+    def stream():
+        while True:
+            try:
+                event = q.get(timeout=120)
+                yield f"data: {json.dumps(event)}\n\n"
+                if event["type"] in ("done", "error"):
+                    break
+            except queue.Empty:
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
