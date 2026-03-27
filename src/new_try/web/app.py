@@ -260,6 +260,17 @@ def get_kg(article_id: str):
     return json.loads(Path(kg_path).read_text(encoding="utf-8"))
 
 
+@app.delete("/api/articles/{article_id}/kg")
+def delete_kg(article_id: str):
+    dirpath = _find_article_dir(article_id)
+    if not dirpath:
+        raise HTTPException(404, "Article not found")
+    kg_path = os.path.join(dirpath, "kg_taxonomy.json")
+    if os.path.exists(kg_path):
+        os.remove(kg_path)
+    return {"ok": True}
+
+
 @app.post("/api/articles/{article_id}/kg/build")
 def build_kg(article_id: str):
     """Build KG taxonomy via LLM. Streams SSE progress events."""

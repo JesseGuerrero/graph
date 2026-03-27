@@ -162,6 +162,7 @@ function showTree(tree) {
   document.getElementById('verifyBtn').onclick = startVerification;
   document.getElementById('killBtn').onclick = killVerification;
   document.getElementById('resetBtn').onclick = resetTree;
+  document.getElementById('resetBtn').disabled = false;
 }
 
 function mapKGToTree(node, depth = 0) {
@@ -431,25 +432,25 @@ function killVerification() {
   if (verifyAbort) verifyAbort.abort();
 }
 
-function resetTree() {
+async function resetTree() {
   if (verifyAbort) { verifyAbort.abort(); verifyAbort = null; }
-  document.querySelectorAll('.node-box').forEach(el => el.classList.remove('receiving', 'passed', 'failed', 'pending'));
-  document.querySelectorAll('.verdict-badge, .error-badges, .error-summary').forEach(el => el.remove());
-  document.querySelectorAll('.fact-highlight').forEach(hl => {
-    const parent = hl.parentNode;
-    parent.replaceChild(document.createTextNode(hl.textContent), hl);
-    parent.normalize();
-  });
-  document.querySelectorAll('.fact-particle').forEach(el => el.remove());
-  document.querySelectorAll('#tree .collapsible').forEach(el => el.classList.add('collapsed'));
-  document.getElementById('verifyBtn').disabled = false;
-  document.getElementById('killBtn').disabled = true;
-  document.getElementById('resetBtn').disabled = true;
-  document.getElementById('scoreDashboard').style.display = 'none';
-  const claims = kgTreeData ? countClaims(kgTreeData) : 0;
-  document.getElementById('processStatus').textContent = `${claims} verifiable claims`;
   treeAnimating = false;
-  drawHLines();
+
+  // Delete cached KG from server
+  try {
+    await fetch(`/api/articles/${articleId}/kg`, { method: 'DELETE' });
+  } catch (e) {}
+
+  kgTreeData = null;
+
+  // Hide tree and markdown panel, show build prompt
+  document.getElementById('tree-section').style.display = 'none';
+  document.getElementById('md-panel').style.display = 'none';
+  document.getElementById('scoreDashboard').style.display = 'none';
+  document.getElementById('tree').innerHTML = '';
+  document.querySelectorAll('.fact-particle').forEach(el => el.remove());
+  document.getElementById('kg-container').style.display = '';
+  showBuildPrompt();
 }
 
 // ── Error Badges ──
