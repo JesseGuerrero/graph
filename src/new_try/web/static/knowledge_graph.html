@@ -1,55 +1,303 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STORM - Knowledge Graph</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-    <link rel="stylesheet" href="/static/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STORM - Verification Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface-2: #252540;
+  --surface-3: #2a2a3a;
+  --border: #2a2a3a;
+  --border-active: #444;
+  --text: #e0e0e0;
+  --text-dim: #999;
+  --text-muted: #888;
+  --accent: #5dade2;
+  --accent-dim: #3a7dba;
+  --green: #58d68d;
+  --amber: #f39c12;
+  --red: #e74c3c;
+  --mono: 'IBM Plex Mono', monospace;
+  --serif: 'Source Serif 4', Georgia, serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.6; min-height: 100vh; display: flex; }
+
+/* Sidebar */
+.sidebar {
+  width: 220px; background: #12122a; min-height: 100vh; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); flex-shrink: 0;
+}
+.sidebar-brand { padding: 16px; }
+.sidebar-brand a {
+  display: block; background: var(--accent); color: var(--bg); text-align: center;
+  padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  text-decoration: none; transition: background 0.2s;
+}
+.sidebar-brand a:hover { background: #7ec8f0; }
+.sidebar-nav { flex: 1; padding: 0 12px; overflow-y: auto; }
+.sidebar-link {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  font-size: 13px; color: var(--text-muted); text-decoration: none;
+  border-radius: 6px; transition: all 0.15s;
+}
+.sidebar-link:hover { color: var(--text); background: var(--surface-2); }
+.sidebar-link.active { color: var(--accent); background: rgba(93,173,226,0.1); }
+.sidebar-history { margin-top: 8px; }
+.sidebar-history a {
+  display: block; padding: 4px 12px; font-size: 11px; color: var(--text-muted);
+  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: color 0.15s;
+}
+.sidebar-history a:hover { color: var(--text); }
+.sidebar-footer { padding: 16px; font-size: 11px; color: #444; }
+
+/* Main */
+.main { flex: 1; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+.topbar {
+  padding: 10px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.topbar h1 { font-family: var(--serif); font-size: 18px; font-weight: 600; }
+.topbar h1 span { color: var(--accent); }
+.topbar .back-link { font-size: 12px; color: var(--accent); text-decoration: none; margin-left: auto; }
+.topbar .back-link:hover { color: #7ec8f0; }
+
+.content { flex: 1; padding: 24px 32px; overflow-y: auto; }
+
+/* Build prompt */
+.build-prompt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 300px; gap: 16px;
+}
+.build-prompt p { color: var(--text-muted); font-size: 13px; }
+.build-prompt .status { font-size: 12px; color: var(--text-dim); }
+.build-prompt .nodes-log {
+  font-size: 11px; color: var(--text-muted); max-height: 200px;
+  overflow-y: auto; width: 100%; max-width: 500px; padding: 8px;
+}
+
+button.action {
+  background: var(--accent); color: var(--bg); border: none;
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  padding: 10px 24px; border-radius: 6px; cursor: pointer;
+  letter-spacing: 0.3px; transition: all 0.2s;
+}
+button.action:hover:not(:disabled) { background: #7ec8f0; }
+button.action:disabled { background: #333; color: #666; cursor: not-allowed; }
+button.action.danger { background: var(--red); }
+button.action.danger:hover:not(:disabled) { background: #f06060; }
+
+/* Tree controls */
+.tree-controls {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.tree-controls .status { font-size: 12px; color: var(--text-muted); margin-left: 12px; }
+
+/* Tree layout */
+.tree-container { display: flex; justify-content: center; overflow-x: auto; padding: 16px 0; width: 100%; }
+.tree { display: flex; flex-direction: column; align-items: center; }
+.node { display: flex; flex-direction: column; align-items: center; }
+.node-box {
+  border: 2px solid #444; border-radius: 10px;
+  padding: 4px 6px; min-width: 120px; max-width: 280px;
+  text-align: center; position: relative;
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  cursor: default; background: var(--surface);
+}
+.node-box:hover { transform: scale(1.05); z-index: 10; }
+.node-box .label { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.node-box .desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; max-width: 240px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+.badge {
+  position: absolute; top: -7px; right: -7px;
+  font-size: 9px; padding: 2px 5px; border-radius: 7px; font-weight: 700;
+}
+.badge.critical { background: var(--red); color: #fff; }
+.badge.strategy {
+  top: -7px; right: auto; left: -7px;
+  background: rgba(0,0,0,0.7); border: 1px solid var(--border-active); color: var(--text-dim);
+}
+
+.node-box.receiving { box-shadow: 0 0 24px rgba(93,173,226,0.7) !important; border-color: var(--accent) !important; }
+.node-box.passed { box-shadow: 0 0 14px rgba(88,214,141,0.4) !important; border-color: var(--green) !important; }
+.node-box.failed { box-shadow: 0 0 14px rgba(248,113,113,0.4) !important; border-color: var(--red) !important; }
+.node-box.pending { animation: pendingPulse 1.5s ease-in-out infinite; border-color: var(--amber) !important; }
+@keyframes pendingPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(251,191,36,0.2); }
+  50% { box-shadow: 0 0 20px rgba(251,191,36,0.5); }
+}
+
+.type-root .node-box { border-color: #f39c12; background: rgba(243,156,18,0.1); }
+.type-root .label { color: #f39c12; }
+.type-section .node-box { border-color: var(--accent); background: rgba(93,173,226,0.08); }
+.type-section .label { color: var(--accent); }
+.type-check .node-box { border-color: var(--green); background: rgba(88,214,141,0.08); }
+.type-check .label { color: var(--green); }
+.type-leaf .node-box { border-color: #af7ac5; background: rgba(175,122,197,0.08); }
+.type-leaf .label { color: #af7ac5; }
+
+.v-line { width: 2px; height: 18px; background: #444; }
+.children { display: flex; gap: 10px; position: relative; justify-content: center; }
+.child-col { display: flex; flex-direction: column; align-items: center; }
+.collapsible { cursor: pointer; }
+.collapsible > .node-box::after { content: ' [-]'; font-size: 9px; color: #555; }
+.collapsible.collapsed > .node-box::after { content: ' [+]'; color: var(--accent); }
+.collapsible.collapsed > .v-line,
+.collapsible.collapsed > .children { display: none; }
+
+/* Verdict badges */
+.verdict-badge {
+  position: absolute; bottom: -8px; right: -8px;
+  font-size: 14px; width: 22px; height: 22px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; z-index: 15;
+  box-shadow: 0 0 8px rgba(0,0,0,0.3);
+  animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.verdict-badge.pass { background: var(--green); color: var(--bg); }
+.verdict-badge.fail { background: var(--red); color: #fff; }
+.verdict-badge.inconclusive { background: var(--surface); color: #888; border: 2px solid #444; font-size: 16px; }
+@keyframes badgePop { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* Error badges */
+.error-badges {
+  position: absolute; bottom: -10px; left: -10px;
+  display: flex; gap: 2px; z-index: 16;
+}
+.error-badge {
+  font-size: 7px; padding: 1px 3px; border-radius: 3px;
+  font-weight: 700; letter-spacing: 0.3px; cursor: help;
+  border: 1px solid transparent; transition: all 0.2s;
+  font-family: var(--mono);
+}
+.error-badge.active { background: rgba(231,76,60,0.2); border-color: var(--red); color: var(--red); }
+.error-badge.inactive { background: rgba(255,255,255,0.03); border-color: var(--border); color: #444; }
+.error-summary { margin-top: 6px; display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; }
+.error-summary .error-badge { font-size: 8px; padding: 2px 5px; }
+
+/* Evidence links */
+.evidence-links { display: flex; gap: 4px; margin-top: 3px; justify-content: center; flex-wrap: wrap; }
+.evidence-links a {
+  font-size: 8px; padding: 1px 4px; border-radius: 3px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: #af7ac5; text-decoration: none; transition: all 0.15s;
+}
+.evidence-links a:hover { border-color: #af7ac5; background: rgba(175,122,197,0.08); }
+
+/* Legend */
+.legend { display: flex; gap: 14px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; padding: 4px 8px; border-radius: 6px; color: var(--text-dim); cursor: pointer; transition: background 0.2s; }
+.legend-item:hover { background: rgba(255,255,255,0.05); }
+.legend-swatch { width: 12px; height: 12px; border-radius: 4px; border: 2px solid; }
+
+/* Score dashboard */
+.score-dashboard {
+  margin-top: 24px; padding: 20px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; display: none;
+}
+.score-dashboard h3 { font-family: var(--serif); font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.score-cards { display: flex; gap: 16px; flex-wrap: wrap; }
+.score-card {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px 24px; text-align: center; min-width: 120px;
+}
+.score-card .value { font-size: 28px; font-weight: 700; }
+.score-card .label-text { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+.score-good { color: var(--green); }
+.score-mid { color: var(--amber); }
+.score-bad { color: var(--red); }
+
+/* Browser toast */
+.browser-toast {
+  position: fixed; top: 16px; left: 240px; z-index: 9999;
+  background: var(--surface-2); border: 1px solid var(--accent-dim);
+  border-radius: 8px; padding: 10px 18px;
+  font-family: var(--mono); font-size: 12px; color: var(--accent);
+  box-shadow: 0 4px 24px rgba(93,173,226,0.2);
+  display: flex; align-items: center; gap: 10px;
+  animation: toastSlideIn 0.4s ease;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.browser-toast.hiding { opacity: 0; transform: translateX(-20px); }
+@keyframes toastSlideIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+.browser-toast .toast-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  animation: toastPulse 1s ease-in-out infinite;
+}
+@keyframes toastPulse { 0%, 100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid #444; border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  margin-right: 8px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hint { text-align: center; color: var(--text-muted); font-size: 11px; margin-top: 8px; }
+</style>
 </head>
-<body class="bg-gray-50 min-h-screen flex">
-    <!-- Sidebar -->
-    <aside id="sidebar" class="w-56 bg-slate-800 text-white min-h-screen flex flex-col fixed lg:static z-30 transition-transform -translate-x-full lg:translate-x-0">
-        <div class="p-4">
-            <a href="/static/index.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2.5 rounded-lg text-sm font-medium transition">
-                + Deep Search
-            </a>
-        </div>
-        <nav class="flex-1 px-3 space-y-1 overflow-hidden">
-            <a href="/static/library.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white transition">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                My Library
-            </a>
-            <div id="sidebar-history" class="mt-2 space-y-0.5"></div>
-        </nav>
-        <div class="p-4 text-xs text-slate-500">STORM Wiki</div>
-    </aside>
+<body>
 
-    <!-- Main -->
-    <div class="flex-1 flex flex-col min-h-screen">
-        <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
-            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            </button>
-            <h1 class="text-lg font-bold text-slate-800">STORM</h1>
-            <a href="#" id="btn-knowledge-graph" class="px-3 py-1.5 text-sm font-medium rounded-lg transition bg-blue-600 text-white">Knowledge Graph</a>
-            <button class="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-100 text-slate-400 cursor-default">TBD</button>
-            <div class="flex-1"></div>
-        </header>
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <a href="/static/index.html">+ Deep Search</a>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/static/library.html" class="sidebar-link">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      My Library
+    </a>
+    <div class="sidebar-history" id="sidebar-history"></div>
+  </nav>
+  <div class="sidebar-footer">STORM Wiki</div>
+</aside>
 
-        <main class="flex-1 px-8 py-6">
-            <h2 id="kg-title" class="text-2xl font-bold text-slate-800 mb-6 text-center"></h2>
-            <div class="flex items-center justify-center mb-4">
-                <a id="back-to-article" href="#" class="text-sm text-blue-600 hover:text-blue-800 transition">Back to Article</a>
-            </div>
-            <div id="kg-container" class="bg-white rounded-xl border border-gray-200 w-full" style="height: 70vh;">
-                <p class="text-center text-slate-400 pt-12">Loading knowledge graph...</p>
-            </div>
-        </main>
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <h1>Verification <span>Tree</span></h1>
+    <a href="#" id="back-to-article" class="back-link">&larr; Back to Article</a>
+  </div>
+
+  <div class="content">
+    <div id="kg-container">
+      <p style="text-align:center;color:var(--text-muted);padding-top:40px">Loading...</p>
     </div>
 
-    <script src="/static/js/app.js?v=2"></script>
-    <script src="/static/js/knowledge_graph.js"></script>
+    <!-- Tree section (shown after build) -->
+    <div id="tree-section" style="display:none">
+      <div class="tree-controls">
+        <button class="action" id="verifyBtn" disabled>Verify Claims</button>
+        <button class="action danger" id="killBtn" disabled>Kill</button>
+        <button class="action" id="resetBtn" disabled style="background:var(--surface-3);color:var(--text-dim)">Reset</button>
+        <span class="status" id="processStatus"></span>
+      </div>
+      <div class="tree-container"><div id="tree" class="tree"></div></div>
+      <div class="hint">Click category nodes to collapse/expand</div>
+      <div class="legend">
+        <div class="legend-item" data-highlight="root"><div class="legend-swatch" style="border-color:#f39c12;background:rgba(243,156,18,0.15)"></div>Root</div>
+        <div class="legend-item" data-highlight="section"><div class="legend-swatch" style="border-color:#5dade2;background:rgba(93,173,226,0.15)"></div>Category</div>
+        <div class="legend-item" data-highlight="check"><div class="legend-swatch" style="border-color:#58d68d;background:rgba(88,214,141,0.15)"></div>Entity</div>
+        <div class="legend-item" data-highlight="leaf"><div class="legend-swatch" style="border-color:#af7ac5;background:rgba(175,122,197,0.15)"></div>Claim (Verifiable)</div>
+        <div class="legend-item"><div class="badge critical" style="position:static">CRITICAL</div> Failure zeros parent</div>
+      </div>
+
+      <div class="score-dashboard" id="scoreDashboard">
+        <h3>Verification Results</h3>
+        <div class="score-cards" id="scoreCards"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/knowledge_graph.js"></script>
 </body>
 </html>
