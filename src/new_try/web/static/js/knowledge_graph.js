@@ -207,6 +207,7 @@ function buildNodeEl(data) {
 
   const box = el('div', 'node-box');
   box.id = `node-${data.id}`;
+  if (data.critical) box.dataset.critical = '1';
   box.innerHTML = `<div class="label">${esc(data.label)}</div>` +
     (data.desc ? `<div class="desc">${esc(truncate(data.desc, 80))}</div>` : '');
 
@@ -430,26 +431,76 @@ async function startVerification() {
 }
 
 function propagateVerdict(nodeEl) {
-  // Walk up and mark parent nodes based on children
-  const nodeWrapper = nodeEl.closest('.node');
-  if (!nodeWrapper) return;
-  const parentCol = nodeWrapper.closest('.child-col');
-  if (!parentCol) return;
-  const parentChildren = parentCol.closest('.children');
-  if (!parentChildren) return;
-  const parentNode = parentChildren.closest('.node');
-  if (!parentNode) return;
-  const parentBox = parentNode.querySelector(':scope > .node-box');
-  if (!parentBox) return;
+  // Walk up the tree, applying Mind2Web 2 gate-then-average (§3.3):
+  //   - Any critical child fails → parent = 0 (failed)
+  //   - All critical pass, non-critical exist → parent = avg(non-critical)
+  //   - All children critical & all pass → parent = passed; else failed
+  let current = nodeEl.closest('.node');
+  while (current) {
+    const parentCol = current.closest('.child-col');
+    if (!parentCol) break;
+    const parentChildren = parentCol.closest('.children');
+    if (!parentChildren) break;
+    const parentNode = parentChildren.closest('.node');
+    if (!parentNode) break;
+    const parentBox = parentNode.querySelector(':scope > .node-box');
+    if (!parentBox) break;
 
-  // Count completed children
-  const allLeaves = parentChildren.querySelectorAll('.node-box.passed, .node-box.failed');
-  const totalLeaves = parentChildren.querySelectorAll('.type-leaf > .node-box, .type-check > .node-box').length;
-  if (!totalLeaves) return;
+    // Gather direct child node-boxes
+    const childCols = parentChildren.querySelectorAll(':scope > .child-col');
+    const childBoxes = Array.from(childCols).map(
+      col => col.querySelector(':scope > .node > .node-box')
+    ).filter(Boolean);
 
-  const failedCount = parentChildren.querySelectorAll('.node-box.failed').length;
-  if (allLeaves.length >= totalLeaves) {
-    parentBox.classList.add(failedCount === 0 ? 'passed' : 'failed');
+    // Only proceed if all children have a verdict
+    const allDone = childBoxes.every(b => b.classList.contains('passed') || b.classList.contains('failed'));
+    if (!allDone) break;
+
+    const critical = childBoxes.filter(b => b.dataset.critical === '1');
+    const nonCritical = childBoxes.filter(b => b.dataset.critical !== '1');
+
+    const anyCritFailed = critical.some(b => b.classList.contains('failed'));
+
+    let score, verdict;
+    if (anyCritFailed) {
+      // Gate: critical failure zeros the parent
+      score = 0;
+      verdict = 'failed';
+    } else if (nonCritical.length > 0) {
+      // Average non-critical children
+      const ncPassed = nonCritical.filter(b => b.classList.contains('passed')).length;
+      score = ncPassed / nonCritical.length;
+      verdict = score === 1 ? 'passed' : score === 0 ? 'failed' : 'passed';
+    } else {
+      // All children are critical — AND gate
+      const allPass = critical.every(b => b.classList.contains('passed'));
+      score = allPass ? 1 : 0;
+      verdict = allPass ? 'passed' : 'failed';
+    }
+
+    parentBox.classList.remove('passed', 'failed');
+    parentBox.classList.add(verdict);
+    parentBox.dataset.score = score.toFixed(2);
+
+    // Add or update verdict badge on parent
+    let badge = parentBox.querySelector('.verdict-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'verdict-badge';
+      parentBox.appendChild(badge);
+    }
+    if (score === 1) {
+      badge.className = 'verdict-badge pass';
+      badge.textContent = '\u2713';
+    } else if (score === 0) {
+      badge.className = 'verdict-badge fail';
+      badge.textContent = '\u2717';
+    } else {
+      badge.className = 'verdict-badge partial';
+      badge.textContent = `${(score * 100).toFixed(0)}%`;
+    }
+
+    current = parentNode;
   }
 }
 
