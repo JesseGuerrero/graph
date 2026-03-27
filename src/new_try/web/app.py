@@ -401,10 +401,20 @@ def _collect_claims(node, path=""):
 
 @app.post("/api/articles/{article_id}/kg/verify")
 def verify_kg(article_id: str):
-    """Verify each claim leaf in the KG via LLM. Streams SSE events."""
+    """Verify each claim leaf in the KG via browser + LLM. Streams SSE events."""
     import asyncio
+    import base64
+    import logging
+
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.insert(0, "C:/Users/jesse/Desktop/demo")
+    sys.path.insert(0, "C:/Users/jesse/Projects/Mind2Web-2")
     from src.taxonomy import create_llm_fn_openai
+    from url_resolver import resolve_urls, extract_cited_urls_from_markdown
+    from mind2web2 import CacheFileSys, LLMClient
+    from mind2web2.utils.page_info_retrieval import BatchBrowserManager
+
+    logger = logging.getLogger("verify")
 
     dirpath = _find_article_dir(article_id)
     if not dirpath:
@@ -416,6 +426,14 @@ def verify_kg(article_id: str):
 
     tree = json.loads(Path(kg_path).read_text(encoding="utf-8"))
     claims = _collect_claims(tree)
+
+    # Load article markdown for URL extraction
+    article_text = ""
+    for fname in ["storm_gen_article_polished.txt", "storm_gen_article.txt"]:
+        fpath = os.path.join(dirpath, fname)
+        if os.path.exists(fpath):
+            article_text = Path(fpath).read_text(encoding="utf-8", errors="replace")
+            break
 
     # Load LLM settings
     settings = {}
@@ -433,61 +451,112 @@ def verify_kg(article_id: str):
         raise HTTPException(400, "LLM API key and URL must be configured")
 
     q = queue.Queue()
+    PROFILE_DIR = Path("C:/Users/jesse/Desktop/demo/browser_profile")
+    PROFILE_DIR.mkdir(exist_ok=True)
 
     def run_verify():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            os.environ["LLM_API_URL"] = api_base
+            os.environ["LLM_API_KEY"] = api_key
             llm = create_llm_fn_openai(base_url=api_base, api_key=api_key, model=model)
+            client = LLMClient(provider="openai", is_async=True)
+            cache = CacheFileSys(task_dir=dirpath)
+            browser = loop.run_until_complete(_start_browser())
+
             passed = 0
             failed = 0
             error_summary = {}
 
-            for i, claim in enumerate(claims):
-                q.put({
-                    "type": "claim_start",
-                    "claim_idx": i,
-                    "id": claim["id"],
-                    "text": claim["claim_text"],
-                })
+            try:
+                for i, claim in enumerate(claims):
+                    q.put({
+                        "type": "claim_start",
+                        "claim_idx": i,
+                        "id": claim["id"],
+                        "text": claim["claim_text"],
+                    })
 
-                # Verify via LLM
-                prompt = VERIFY_CLAIM_PROMPT.format(
-                    claim_text=claim["claim_text"],
-                    search_query=claim["search_query"],
-                    cited_urls=json.dumps(claim["cited_urls"][:3]) if claim["cited_urls"] else "[]",
-                )
-                try:
-                    raw = loop.run_until_complete(llm(VERIFY_SYSTEM, prompt))
-                    cleaned = re.sub(r"```json\s?|```", "", raw).strip()
-                    result = json.loads(cleaned)
-                except Exception as e:
-                    result = {"verdict": "failed", "reasoning": f"Verification error: {e}", "errors": ["inf"]}
+                    # Resolve URLs: cited → search fallback
+                    cited = claim["cited_urls"] or []
+                    if not cited and article_text:
+                        cited = extract_cited_urls_from_markdown(article_text, claim["claim_text"])
 
-                verdict = result.get("verdict", "failed")
-                errors = result.get("errors", [])
+                    urls = loop.run_until_complete(resolve_urls(
+                        claim=claim["claim_text"],
+                        entity_type="unknown",
+                        entity_name=claim["label"],
+                        cited_urls=cited,
+                        search_query=claim["search_query"],
+                        browser=browser,
+                        cache=cache,
+                        logger=logger,
+                        preferred_domain="",
+                    ))
 
-                # Add missing-attribution error if no cited URLs
-                if not claim["cited_urls"] and "mat" not in errors:
-                    errors.append("mat")
+                    # Fetch evidence from resolved URLs via browser
+                    evidence_text = ""
+                    evidence_urls = urls[:3]
+                    for url in evidence_urls:
+                        try:
+                            if cache.has(url):
+                                text, _ = cache.get_web(url, get_screenshot=True)
+                                if text:
+                                    evidence_text += text[:2000] + "\n"
+                            else:
+                                ss, text = loop.run_until_complete(
+                                    browser.capture_page(url, logger, user_data_dir=str(PROFILE_DIR))
+                                )
+                                if text:
+                                    cache.put_web(url, text, ss)
+                                    evidence_text += text[:2000] + "\n"
+                        except Exception:
+                            continue
+                    cache.save()
 
-                if verdict == "passed":
-                    passed += 1
-                else:
-                    failed += 1
+                    # Verify claim against evidence via LLM
+                    verify_prompt = VERIFY_CLAIM_PROMPT.format(
+                        claim_text=claim["claim_text"],
+                        search_query=claim["search_query"],
+                    )
+                    if evidence_text:
+                        verify_prompt += f"\n\nEvidence from web:\n{evidence_text[:4000]}"
 
-                for e in errors:
-                    error_summary[e] = error_summary.get(e, 0) + 1
+                    try:
+                        raw = loop.run_until_complete(llm(VERIFY_SYSTEM, verify_prompt))
+                        cleaned = re.sub(r"```json\s?|```", "", raw).strip()
+                        result = json.loads(cleaned)
+                    except Exception as e:
+                        result = {"verdict": "failed", "reasoning": str(e), "errors": ["inf"]}
 
-                q.put({
-                    "type": "claim_result",
-                    "claim_idx": i,
-                    "id": claim["id"],
-                    "verdict": verdict,
-                    "reasoning": result.get("reasoning", ""),
-                    "evidence_urls": claim["cited_urls"][:3],
-                    "errors": errors,
-                })
+                    verdict = result.get("verdict", "failed")
+                    errors = result.get("errors", [])
+
+                    if not evidence_urls and "inf" not in errors:
+                        errors.append("inf")
+                    if not cited and "mat" not in errors:
+                        errors.append("mat")
+
+                    if verdict == "passed":
+                        passed += 1
+                    else:
+                        failed += 1
+
+                    for e in errors:
+                        error_summary[e] = error_summary.get(e, 0) + 1
+
+                    q.put({
+                        "type": "claim_result",
+                        "claim_idx": i,
+                        "id": claim["id"],
+                        "verdict": verdict,
+                        "reasoning": result.get("reasoning", ""),
+                        "evidence_urls": evidence_urls,
+                        "errors": errors,
+                    })
+            finally:
+                loop.run_until_complete(browser.stop())
 
             total = len(claims)
             score = passed / total if total > 0 else 0
@@ -518,6 +587,13 @@ def verify_kg(article_id: str):
                 yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+async def _start_browser():
+    from mind2web2.utils.page_info_retrieval import BatchBrowserManager
+    browser = BatchBrowserManager(headless=False, max_concurrent_pages=3)
+    await browser.start()
+    return browser
 
 
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
