@@ -241,6 +241,55 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .hint { text-align: center; color: var(--text-muted); font-size: 11px; margin-top: 8px; }
+
+/* Markdown panel */
+.md-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 24px; overflow: hidden; display: flex; flex-direction: column; max-height: 40vh;
+}
+.md-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.md-panel-header h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+.md-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+.md-panel-body::-webkit-scrollbar { width: 4px; }
+.md-panel-body::-webkit-scrollbar-track { background: transparent; }
+.md-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.rendered-md { font-size: 0.95em; line-height: 1.6; color: #bbb; }
+.rendered-md h1 { color: var(--accent); font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.rendered-md h2 { color: var(--accent); font-size: 1.1em; margin: 16px 0 8px; }
+.rendered-md h3 { color: var(--accent); font-size: 1.0em; margin: 12px 0 6px; }
+.rendered-md p { margin: 8px 0; }
+.rendered-md a { color: #af7ac5; text-decoration: none; }
+.rendered-md code { font-family: var(--mono); font-size: 0.85em; background: var(--surface-2); padding: 2px 6px; border-radius: 3px; }
+.rendered-md pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 16px; overflow-x: auto; margin: 8px 0; }
+.rendered-md ul,.rendered-md ol { padding-left: 24px; margin-bottom: 8px; }
+.rendered-md li { margin-bottom: 0.3em; }
+.rendered-md table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.rendered-md th,.rendered-md td { border: 1px solid #333; padding: 6px 10px; text-align: left; font-size: 0.95em; }
+.rendered-md th { background: rgba(93,173,226,0.1); color: var(--accent); font-weight: 600; }
+.rendered-md blockquote { border-left: 3px solid var(--accent); padding-left: 16px; color: #8899aa; margin: 8px 0; font-style: italic; }
+
+/* Fact highlights in markdown */
+.fact-highlight {
+  background: rgba(93,173,226,0.4); outline: 1px solid var(--accent);
+  border-radius: 3px; padding: 1px 4px; transition: background 0.3s;
+}
+.fact-highlight.done { background: rgba(88,214,141,0.15); outline-color: rgba(88,214,141,0.4); }
+.fact-highlight.fail-done { background: rgba(231,76,60,0.15); outline-color: rgba(231,76,60,0.4); }
+
+/* Flying particle */
+.fact-particle {
+  position: fixed; pointer-events: none;
+  background: var(--accent); color: var(--bg);
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 700; z-index: 1000; white-space: nowrap;
+  box-shadow: 0 0 20px rgba(93,173,226,0.6);
+  transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  opacity: 1;
+}
 </style>
 </head>
 <body>
@@ -272,6 +321,12 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
       <p style="text-align:center;color:var(--text-muted);padding-top:40px">Loading...</p>
     </div>
 
+    <!-- Markdown panel (shown after build) -->
+    <div class="md-panel" id="md-panel" style="display:none">
+      <div class="md-panel-header"><h2>Article</h2></div>
+      <div class="md-panel-body" id="md-body"></div>
+    </div>
+
     <!-- Tree section (shown after build) -->
     <div id="tree-section" style="display:none">
       <div class="tree-controls">
@@ -298,6 +353,7 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
 <script src="/static/js/knowledge_graph.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ const ERROR_TYPES = [
 let treeAnimating = false;
 let verifyAbort = null;
 let kgTreeData = null;
+let articleMarkdown = '';
 
 // ── Init ──
 
@@ -20,6 +21,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!articleId) return;
   document.getElementById('back-to-article').href = `/static/article.html?id=${articleId}`;
   loadSidebarHistory();
+
+  // Load article markdown
+  try {
+    const artRes = await fetch(`/api/articles/${articleId}`);
+    if (artRes.ok) {
+      const art = await artRes.json();
+      articleMarkdown = art.article_text || '';
+    }
+  } catch (e) {}
 
   // Try cached KG
   try {
@@ -128,6 +138,13 @@ function startBuild() {
 function showTree(tree) {
   document.getElementById('kg-container').style.display = 'none';
   document.getElementById('tree-section').style.display = '';
+
+  // Show markdown panel
+  if (articleMarkdown) {
+    document.getElementById('md-panel').style.display = '';
+    document.getElementById('md-body').innerHTML =
+      `<div class="rendered-md">${marked.parse(articleMarkdown)}</div>`;
+  }
 
   const treeEl = document.getElementById('tree');
   treeEl.innerHTML = '';
@@ -291,6 +308,12 @@ async function startVerification() {
             nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
           showToast(`Verifying: ${truncate(event.text || event.id, 60)}`);
+
+          // Highlight in markdown and fly particle
+          const hl = highlightClaimInMarkdown(event.text || '', event.id);
+          if (hl && nodeEl) {
+            await flyFactParticle(hl, nodeEl);
+          }
         }
 
         if (event.type === 'claim_result') {
@@ -311,6 +334,10 @@ async function startVerification() {
           }
 
           nodeEl.classList.add(nodeClass);
+
+          // Mark markdown highlight
+          const hlEl = document.querySelector(`.fact-highlight[data-claim-id="${event.id}"]`);
+          if (hlEl) hlEl.classList.add(verdictType === 'pass' ? 'done' : 'fail-done');
 
           // Verdict badge
           const badge = document.createElement('span');
@@ -408,7 +435,12 @@ function resetTree() {
   if (verifyAbort) { verifyAbort.abort(); verifyAbort = null; }
   document.querySelectorAll('.node-box').forEach(el => el.classList.remove('receiving', 'passed', 'failed', 'pending'));
   document.querySelectorAll('.verdict-badge, .error-badges, .error-summary').forEach(el => el.remove());
-  // Remove dynamically-added evidence-links (keep original cited ones)
+  document.querySelectorAll('.fact-highlight').forEach(hl => {
+    const parent = hl.parentNode;
+    parent.replaceChild(document.createTextNode(hl.textContent), hl);
+    parent.normalize();
+  });
+  document.querySelectorAll('.fact-particle').forEach(el => el.remove());
   document.querySelectorAll('#tree .collapsible').forEach(el => el.classList.add('collapsed'));
   document.getElementById('verifyBtn').disabled = false;
   document.getElementById('killBtn').disabled = true;
@@ -467,6 +499,66 @@ function showScoreDashboard(event) {
     <div class="score-card"><div class="value">${event.total_claims}</div><div class="label-text">Total Claims</div></div>
   `;
   dashboard.style.display = '';
+}
+
+// ── Markdown Claim Highlighting ──
+
+function highlightClaimInMarkdown(claimText, claimId) {
+  const mdEl = document.querySelector('#md-body .rendered-md');
+  if (!mdEl) return null;
+
+  const words = claimText.split(/\s+/).filter(w => w.length > 4).slice(0, 5);
+  if (!words.length) return null;
+
+  const walker = document.createTreeWalker(mdEl, NodeFilter.SHOW_TEXT);
+  let bestNode = null, bestScore = 0;
+  while (walker.nextNode()) {
+    const text = walker.currentNode.textContent.toLowerCase();
+    const score = words.filter(w => text.includes(w.toLowerCase())).length;
+    if (score > bestScore) { bestScore = score; bestNode = walker.currentNode; }
+  }
+  if (!bestNode || bestScore < 1) return null;
+
+  const range = document.createRange();
+  range.selectNodeContents(bestNode);
+  const hl = document.createElement('span');
+  hl.className = 'fact-highlight';
+  hl.dataset.claimId = claimId;
+  range.surroundContents(hl);
+
+  // Scroll markdown panel to highlight
+  const container = hl.closest('.md-panel-body');
+  if (container) {
+    const cRect = container.getBoundingClientRect();
+    const hRect = hl.getBoundingClientRect();
+    container.scrollTop += hRect.top - cRect.top - cRect.height / 3;
+  }
+  return hl;
+}
+
+function flyFactParticle(sourceEl, targetEl) {
+  return new Promise(resolve => {
+    const sr = sourceEl.getBoundingClientRect();
+    const tr = targetEl.getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'fact-particle';
+    p.textContent = 'Verify';
+    p.style.left = (sr.left + sr.width / 2) + 'px';
+    p.style.top = (sr.top + sr.height / 2) + 'px';
+    document.body.appendChild(p);
+    requestAnimationFrame(() => {
+      p.style.left = (tr.left + tr.width / 2 - p.offsetWidth / 2) + 'px';
+      p.style.top = (tr.top + tr.height / 2 - p.offsetHeight / 2) + 'px';
+    });
+    setTimeout(() => {
+      targetEl.classList.add('receiving');
+      setTimeout(() => {
+        targetEl.classList.remove('receiving');
+        p.style.opacity = '0';
+        setTimeout(() => { p.remove(); resolve(); }, 200);
+      }, 350);
+    }, 800);
+  });
 }
 
 // ── Toast ──
