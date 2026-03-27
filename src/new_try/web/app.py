@@ -450,10 +450,29 @@ def verify_kg(article_id: str):
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
     sys.path.insert(0, "C:/Users/jesse/Desktop/demo")
     sys.path.insert(0, "C:/Users/jesse/Projects/Mind2Web-2")
+
+    # Stub mind2web2 package BEFORE importing submodules to bypass
+    # __init__.py (it eagerly imports arxiv, googlemaps, etc.)
+    import types, importlib
+    if "mind2web2" not in sys.modules:
+        stub = types.ModuleType("mind2web2")
+        stub.__path__ = ["C:/Users/jesse/Projects/Mind2Web-2/mind2web2"]
+        stub.__package__ = "mind2web2"
+        stub_utils = types.ModuleType("mind2web2.utils")
+        stub_utils.__path__ = ["C:/Users/jesse/Projects/Mind2Web-2/mind2web2/utils"]
+        stub_utils.__package__ = "mind2web2.utils"
+        sys.modules["mind2web2"] = stub
+        sys.modules["mind2web2.utils"] = stub_utils
+
+    _cache_mod = importlib.import_module("mind2web2.utils.cache_filesys")
+    _browser_mod = importlib.import_module("mind2web2.utils.page_info_retrieval")
+    sys.modules["mind2web2.utils.cache_filesys"] = _cache_mod
+    sys.modules["mind2web2.utils.page_info_retrieval"] = _browser_mod
+    CacheFileSys = _cache_mod.CacheFileSys
+    BatchBrowserManager = _browser_mod.BatchBrowserManager
+
     from src.taxonomy import create_llm_fn_openai
     from url_resolver import resolve_urls, extract_cited_urls_from_markdown
-    from mind2web2 import CacheFileSys, LLMClient
-    from mind2web2.utils.page_info_retrieval import BatchBrowserManager
 
     logger = logging.getLogger("verify")
 
@@ -502,7 +521,6 @@ def verify_kg(article_id: str):
             os.environ["LLM_API_URL"] = api_base
             os.environ["LLM_API_KEY"] = api_key
             llm = create_llm_fn_openai(base_url=api_base, api_key=api_key, model=model)
-            client = LLMClient(provider="openai", is_async=True)
             cache = CacheFileSys(task_dir=dirpath)
             browser = loop.run_until_complete(_start_browser())
 
@@ -638,8 +656,11 @@ def verify_kg(article_id: str):
 
 
 async def _start_browser():
-    from mind2web2.utils.page_info_retrieval import BatchBrowserManager
-    browser = BatchBrowserManager(headless=False, max_concurrent_pages=3)
+    mod = sys.modules.get("mind2web2.utils.page_info_retrieval")
+    if not mod:
+        import importlib
+        mod = importlib.import_module("mind2web2.utils.page_info_retrieval")
+    browser = mod.BatchBrowserManager(headless=False, max_concurrent_pages=3)
     await browser.start()
     return browser
 
