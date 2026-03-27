@@ -332,19 +332,31 @@ async function startVerification() {
             expandPathToNode(nodeEl);
             setTimeout(drawHLines, 50);
             nodeEl.classList.add('pending');
-            nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
           showToast(`Verifying: ${truncate(event.text || event.id, 60)}`);
 
-          // Highlight in markdown and fly particle
+          // Activate scan overlay on markdown panel
+          const overlay = document.getElementById('verifyOverlay');
+          if (overlay) overlay.classList.add('active');
+
+          // Highlight in markdown and fly particle from markdown to tree node
           const hl = highlightClaimInMarkdown(event.text || '', event.id);
           if (hl && nodeEl) {
             await flyFactParticle(hl, nodeEl);
+          } else if (nodeEl) {
+            // No highlight found — fly from the md-panel center
+            const mdPanel = document.getElementById('md-panel');
+            if (mdPanel) await flyFactParticle(mdPanel, nodeEl);
           }
+
+          // Scroll node into view after particle lands
+          if (nodeEl) nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         if (event.type === 'claim_result') {
           hideToast();
+          const overlay = document.getElementById('verifyOverlay');
+          if (overlay) overlay.classList.remove('active');
           const nodeEl = document.getElementById(`node-${event.id}`);
           if (!nodeEl) continue;
 
@@ -396,6 +408,8 @@ async function startVerification() {
 
         if (event.type === 'done') {
           hideToast();
+          const ov = document.getElementById('verifyOverlay');
+          if (ov) ov.classList.remove('active');
           const score = event.score;
           const passed = score >= 0.5;
           const root = document.getElementById('node-root') || document.querySelector('.type-root .node-box');

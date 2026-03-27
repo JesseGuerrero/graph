@@ -100,23 +100,23 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 .tree-controls .status { font-size: 12px; color: var(--text-muted); margin-left: 12px; }
 
 /* Tree layout */
-.tree-container { display: flex; justify-content: center; overflow-x: auto; padding: 16px 0; width: 100%; }
+.tree-container { display: flex; justify-content: center; overflow-x: auto; padding: 10px 0; width: 100%; }
 .tree { display: flex; flex-direction: column; align-items: center; }
 .node { display: flex; flex-direction: column; align-items: center; }
 .node-box {
-  border: 2px solid #444; border-radius: 10px;
-  padding: 4px 6px; min-width: 120px; max-width: 280px;
+  border: 2px solid #444; border-radius: 8px;
+  padding: 3px 5px; min-width: 90px; max-width: 200px;
   text-align: center; position: relative;
   transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
   cursor: default; background: var(--surface);
 }
 .node-box:hover { transform: scale(1.05); z-index: 10; }
-.node-box .label { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-.node-box .desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; max-width: 240px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.node-box .label { font-weight: 600; font-size: 11px; margin-bottom: 1px; }
+.node-box .desc { font-size: 9px; color: var(--text-muted); line-height: 1.2; max-width: 180px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 .badge {
-  position: absolute; top: -7px; right: -7px;
-  font-size: 9px; padding: 2px 5px; border-radius: 7px; font-weight: 700;
+  position: absolute; top: -6px; right: -6px;
+  font-size: 8px; padding: 1px 4px; border-radius: 6px; font-weight: 700;
 }
 .badge.critical { background: var(--red); color: #fff; }
 .badge.strategy {
@@ -142,8 +142,8 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 .type-leaf .node-box { border-color: #af7ac5; background: rgba(175,122,197,0.08); }
 .type-leaf .label { color: #af7ac5; }
 
-.v-line { width: 2px; height: 18px; background: #444; }
-.children { display: flex; gap: 10px; position: relative; justify-content: center; }
+.v-line { width: 2px; height: 12px; background: #444; }
+.children { display: flex; gap: 6px; position: relative; justify-content: center; }
 .child-col { display: flex; flex-direction: column; align-items: center; }
 .collapsible { cursor: pointer; }
 .collapsible > .node-box::after { content: ' [-]'; font-size: 9px; color: #555; }
@@ -153,8 +153,8 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 
 /* Verdict badges */
 .verdict-badge {
-  position: absolute; bottom: -8px; right: -8px;
-  font-size: 14px; width: 22px; height: 22px;
+  position: absolute; bottom: -6px; right: -6px;
+  font-size: 12px; width: 18px; height: 18px;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-weight: 700; z-index: 15;
   box-shadow: 0 0 8px rgba(0,0,0,0.3);
@@ -246,7 +246,8 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 /* Markdown panel */
 .md-panel {
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  margin-bottom: 24px; overflow: hidden; display: flex; flex-direction: column; max-height: 40vh;
+  margin-bottom: 16px; overflow: hidden; display: flex; flex-direction: column; max-height: 30vh;
+  position: relative;
 }
 .md-panel-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -258,7 +259,7 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
 .md-panel-body::-webkit-scrollbar-track { background: transparent; }
 .md-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-.rendered-md { font-size: 0.95em; line-height: 1.6; color: #bbb; }
+.rendered-md { font-size: 0.85em; line-height: 1.5; color: #bbb; }
 .rendered-md h1 { color: var(--accent); font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 .rendered-md h2 { color: var(--accent); font-size: 1.1em; margin: 16px 0 8px; }
 .rendered-md h3 { color: var(--accent); font-size: 1.0em; margin: 12px 0 6px; }
@@ -290,6 +291,29 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
   box-shadow: 0 0 20px rgba(93,173,226,0.6);
   transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
   opacity: 1;
+}
+
+/* Verify overlay on markdown panel */
+.verify-overlay {
+  position: absolute; inset: 0; pointer-events: none; z-index: 20;
+  background: transparent; transition: background 0.3s;
+}
+.verify-overlay.active {
+  background: rgba(93,173,226,0.06);
+}
+.verify-overlay .scan-line {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 12px rgba(93,173,226,0.6);
+  opacity: 0; transition: opacity 0.3s;
+}
+.verify-overlay.active .scan-line {
+  opacity: 1;
+  animation: scanDown 1.2s ease-in-out infinite;
+}
+@keyframes scanDown {
+  0% { top: 0; }
+  100% { top: 100%; }
 }
 </style>
 </head>
@@ -326,6 +350,7 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
     <div class="md-panel" id="md-panel" style="display:none">
       <div class="md-panel-header"><h2>Article</h2></div>
       <div class="md-panel-body" id="md-body"></div>
+      <div class="verify-overlay" id="verifyOverlay"><div class="scan-line"></div></div>
     </div>
 
     <!-- Tree section (shown after build) -->
