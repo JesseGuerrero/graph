@@ -410,6 +410,36 @@ def _collect_claims(node, path=""):
     return claims
 
 
+def _aggregate_tree_score(node, verdict_map):
+    """Mind2Web 2 §3.3 gate-then-average on nested tree dict.
+
+    Returns float score in [0, 1] for this node.
+    """
+    is_leaf = node.get("type") == "claim" or not node.get("children")
+    if is_leaf:
+        return 1.0 if verdict_map.get(node.get("id")) == "passed" else 0.0
+
+    child_scores = []
+    for child in node.get("children", []):
+        s = _aggregate_tree_score(child, verdict_map)
+        child_scores.append((s, child.get("critical", False)))
+
+    if not child_scores:
+        return 0.0
+
+    critical = [(s, c) for s, c in child_scores if c]
+    non_critical = [(s, c) for s, c in child_scores if not c]
+
+    # Any critical child fails → 0
+    if any(s < 1.0 for s, _ in critical):
+        return 0.0
+    # All critical pass, non-critical exist → average of non-critical
+    if non_critical:
+        return sum(s for s, _ in non_critical) / len(non_critical)
+    # All children are critical — 1 if all pass, else 0
+    return 1.0 if all(s == 1.0 for s, _ in critical) else 0.0
+
+
 @app.post("/api/articles/{article_id}/kg/verify")
 def verify_kg(article_id: str):
     """Verify each claim leaf in the KG via browser + LLM. Streams SSE events."""
@@ -549,6 +579,7 @@ def verify_kg(article_id: str):
                     if not cited and "mat" not in errors:
                         errors.append("mat")
 
+                    claim["_verdict"] = verdict
                     if verdict == "passed":
                         passed += 1
                     else:
@@ -570,7 +601,13 @@ def verify_kg(article_id: str):
                 loop.run_until_complete(browser.stop())
 
             total = len(claims)
-            score = passed / total if total > 0 else 0
+            # Build verdict map from SSE results
+            verdict_map = {}
+            for claim in claims:
+                verdict_map[claim["id"]] = "passed" if claim.get("_verdict") == "passed" else "failed"
+
+            # Compute tree score using Mind2Web 2 gate-then-average
+            score = _aggregate_tree_score(tree, verdict_map)
             q.put({
                 "type": "done",
                 "score": score,
