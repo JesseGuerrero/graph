@@ -410,6 +410,20 @@ def _collect_claims(node, path=""):
     return claims
 
 
+class _NoReadCache:
+    """Wraps CacheFileSys but always returns cache-miss on reads. Writes still go through."""
+    def __init__(self, inner):
+        self._inner = inner
+    def has(self, url):
+        return False
+    def get_web(self, url, **kw):
+        return "", None
+    def put_web(self, url, text, ss):
+        self._inner.put_web(url, text, ss)
+    def save(self):
+        self._inner.save()
+
+
 def _aggregate_tree_score(node, verdict_map):
     """Mind2Web 2 §3.3 gate-then-average on nested tree dict.
 
@@ -441,7 +455,7 @@ def _aggregate_tree_score(node, verdict_map):
 
 
 @app.post("/api/articles/{article_id}/kg/verify")
-def verify_kg(article_id: str):
+def verify_kg(article_id: str, use_cache: bool = True):
     """Verify each claim leaf in the KG via browser + LLM. Streams SSE events."""
     import asyncio
     import base64
@@ -522,6 +536,8 @@ def verify_kg(article_id: str):
             os.environ["LLM_API_KEY"] = api_key
             llm = create_llm_fn_openai(base_url=api_base, api_key=api_key, model=model)
             cache = CacheFileSys(task_dir=dirpath)
+            # Wrap cache to skip reads when use_cache is off (writes still populate)
+            resolve_cache = cache if use_cache else _NoReadCache(cache)
             browser = loop.run_until_complete(_start_browser())
 
             passed = 0
@@ -549,7 +565,7 @@ def verify_kg(article_id: str):
                         cited_urls=cited,
                         search_query=claim["search_query"],
                         browser=browser,
-                        cache=cache,
+                        cache=resolve_cache,
                         logger=logger,
                         preferred_domain="",
                     ))
@@ -559,7 +575,7 @@ def verify_kg(article_id: str):
                     evidence_urls = urls[:3]
                     for url in evidence_urls:
                         try:
-                            if cache.has(url):
+                            if use_cache and cache.has(url):
                                 text, _ = cache.get_web(url, get_screenshot=True)
                                 if text:
                                     evidence_text += text[:2000] + "\n"

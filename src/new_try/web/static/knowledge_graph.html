@@ -98,6 +98,8 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
   display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
 }
 .tree-controls .status { font-size: 12px; color: var(--text-muted); margin-left: 12px; }
+.cache-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); cursor: pointer; margin-left: 8px; }
+.cache-toggle input { accent-color: var(--accent); cursor: pointer; }
 
 /* Tree layout */
 .tree-container { display: flex; justify-content: center; overflow-x: auto; padding: 10px 0; width: 100%; }
@@ -359,6 +361,7 @@ button.action.danger:hover:not(:disabled) { background: #f06060; }
         <button class="action" id="verifyBtn" disabled>Verify Claims</button>
         <button class="action danger" id="killBtn" disabled>Kill</button>
         <button class="action" id="resetBtn" style="background:var(--surface-3);color:var(--text-dim)">Reset</button>
+        <label class="cache-toggle"><input type="checkbox" id="useCacheChk"><span>Use Cache</span></label>
         <span class="status" id="processStatus"></span>
       </div>
       <div class="tree-container"><div id="tree" class="tree"></div></div>

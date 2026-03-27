@@ -163,6 +163,13 @@ function showTree(tree) {
   document.getElementById('killBtn').onclick = killVerification;
   document.getElementById('resetBtn').onclick = resetTree;
   document.getElementById('resetBtn').disabled = false;
+
+  // Cache checkbox — persist to localStorage
+  const cacheChk = document.getElementById('useCacheChk');
+  cacheChk.checked = localStorage.getItem('useCache') !== 'false';
+  cacheChk.addEventListener('change', () => {
+    localStorage.setItem('useCache', cacheChk.checked);
+  });
 }
 
 function mapKGToTree(node, depth = 0) {
@@ -303,7 +310,8 @@ async function startVerification() {
   setTimeout(drawHLines, 100);
 
   try {
-    const resp = await fetch(`/api/articles/${articleId}/kg/verify`, {
+    const useCache = document.getElementById('useCacheChk').checked;
+    const resp = await fetch(`/api/articles/${articleId}/kg/verify?use_cache=${useCache}`, {
       method: 'POST',
       signal: verifyAbort.signal,
     });
