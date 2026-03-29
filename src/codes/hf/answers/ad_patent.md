@@ -1,0 +1,11 @@
+Find three U.S. patents or patent applications in the field of autonomous driving that were published in the last year, regardless of whether they have been granted. For each, include the title, the inventors' names, the organization or assignee, the filing date, the publication date, and a link to the corresponding Google Patents page.
+
+IMPORTANT formatting requirements for your response:
+- Write the full response in rich Markdown
+- Use headers (##), bold, tables, and bullet lists
+- Include inline hyperlinks in Markdown format: [text](url)
+- Cite every factual claim with a source URL inline
+- End with a ## References section listing all URLs used
+- Be comprehensive and thorough
+
+4:28 PM
