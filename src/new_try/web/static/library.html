@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STORM - My Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-56 bg-slate-800 text-white min-h-screen flex flex-col fixed lg:static z-30 transition-transform -translate-x-full lg:translate-x-0">
+        <div class="p-4">
+            <a href="/static/index.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2.5 rounded-lg text-sm font-medium transition">
+                + Deep Search
+            </a>
+        </div>
+        <nav class="flex-1 px-3 space-y-1 overflow-hidden">
+            <a href="/static/library.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm text-slate-300 hover:text-white transition">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                My Library
+            </a>
+            <div id="sidebar-history" class="mt-2 space-y-0.5"></div>
+        </nav>
+        <div class="p-4 text-xs text-slate-500">STORM Wiki</div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <h1 class="text-lg font-bold text-slate-800">STORM</h1>
+        </header>
+
+        <main class="flex-1 px-8 py-6 max-w-5xl w-full mx-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">My Articles</h2>
+                <input id="search-input" type="text" placeholder="Search articles..."
+                       class="border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-300 w-64">
+            </div>
+
+            <!-- Article grid -->
+            <div id="article-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <!-- Empty state -->
+            <div id="empty-state" class="hidden text-center py-16">
+                <a href="/static/index.html" class="inline-block bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-blue-300 hover:shadow-sm transition cursor-pointer">
+                    <p class="text-lg font-medium text-slate-600 mb-1">Get started</p>
+                    <p class="text-sm text-slate-400">Start your first research!</p>
+                </a>
+            </div>
+
+            <!-- Pagination -->
+            <div id="pagination" class="hidden flex items-center justify-between mt-8">
+                <p id="page-info" class="text-sm text-slate-500"></p>
+                <div class="flex items-center gap-4">
+                    <select id="page-size" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none">
+                        <option value="24">24 per page</option>
+                        <option value="48">48 per page</option>
+                        <option value="72">72 per page</option>
+                    </select>
+                    <div class="flex gap-1">
+                        <button id="prev-page" class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40">&laquo; Prev</button>
+                        <button id="next-page" class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40">Next &raquo;</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/library.js"></script>
+</body>
+</html>

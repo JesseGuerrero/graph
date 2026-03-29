@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.python-version
+uv.lock
+.env
+web/output/
+.user_settings.json
+.serper_cache/
+*.serper_cache
+.image_cache/
